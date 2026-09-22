@@ -16,6 +16,6 @@ supabase link --project-ref SEU_PROJECT_REF
 supabase db push
 ```
 
-A migration cria as tabelas, constraints, coluna calculada de preço unitário, triggers de atualização, RLS para usuários autenticados e os registros iniciais de conversão e gás.
+A migration cria as tabelas, constraints, coluna calculada de preço unitário, triggers de atualização, RLS para usuários autenticados e os registros iniciais de conversão e gás. A migration `202609210010_pedidos.sql` adiciona o fluxo público de pedidos, snapshots dos itens, checkout seguro via RPC e Realtime para o Kanban.
 
 O app usa somente a chave `anon` no navegador. Não coloque a `service_role` em `.env.local` nem no bundle frontend.

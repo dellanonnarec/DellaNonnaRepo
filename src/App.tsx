@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { createClient } from "@supabase/supabase-js";
 import {
   ArrowRight,
   Check,
   ChevronDown,
   CircleHelp,
+  ClipboardList,
+  Columns3,
   Copy,
   Flame,
   LogOut,
@@ -21,6 +22,10 @@ import {
   Search,
   X,
 } from "lucide-react";
+import Pedido from "./pages/Pedido/Pedido";
+import AdminPedidos from "./pages/Pedidos/AdminPedidosPage";
+import AdminPedidosKanban from "./pages/Pedidos/AdminPedidosKanbanPage";
+import { publicSupabase } from "./lib/supabase";
 import "./App.css";
 
 type Ingredient = {
@@ -134,10 +139,7 @@ const readStoredGas = (): { gas: Gas; gasIncluded: boolean } | null => {
   }
 };
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase =
-  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const supabase = publicSupabase;
 const initialIngredients: Ingredient[] = [
   
 ];
@@ -298,13 +300,17 @@ const schedulePricingSave = (pizza: Pizza) => {
 };
 
 function App() {
+  const pathname = typeof window !== "undefined" ? window.location.pathname : "/";
+  const isPublicOrderRoute = pathname === "/pedido";
+  const isOrdersRoute = pathname === "/admin/pedidos";
+  const isKanbanRoute = pathname === "/admin/pedidos/kanban";
   const [session, setSession] = useState(false);
   const [authReady, setAuthReady] = useState(!supabase);
   const [email, setEmail] = useState("admin@dellanonna.com");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [activeSection, setActiveSection] = useState<
-    "insumos" | "fichas" | "precificacao" | "cardapio"
+    "insumos" | "fichas" | "precificacao" | "cardapio" | "pedidos" | "kanban"
   >("insumos");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -852,6 +858,7 @@ function App() {
     if (supabase) await supabase.auth.signOut();
     setSession(false);
   };
+  if (isPublicOrderRoute) return <Pedido />;
   if (!authReady)
     return <main className="login-page"><div className="login-card"><p>Restaurando sessão...</p></div></main>;
   if (!session)
@@ -907,6 +914,8 @@ function App() {
         </form>
       </main>
     );
+  if (isOrdersRoute) return <AdminPedidos />;
+  if (isKanbanRoute) return <AdminPedidosKanban />;
   return (
     <div className={sidebarCollapsed ? "app-shell sidebar-collapsed" : "app-shell"}>
       <aside className="sidebar">
@@ -935,6 +944,8 @@ function App() {
               ["fichas", "Fichas técnicas", Utensils],
               ["precificacao", "Precificação", TrendingUp],
               ["cardapio", "Cardápio", Settings2],
+              ["pedidos", "Pedidos", ClipboardList],
+              ["kanban", "Kanban", Columns3],
             ] as const
           ).map(([id, label, Icon]) => (
             <button
@@ -943,8 +954,18 @@ function App() {
               onClick={() => {
                 setActiveSection(id);
                 if (typeof window !== "undefined") {
-                  const path = id === "insumos" ? "/admin" : `/admin/${id}`;
-                  window.history.pushState({}, "", path);
+                  const path = id === "insumos"
+                    ? "/admin"
+                    : id === "pedidos"
+                      ? "/admin/pedidos"
+                      : id === "kanban"
+                        ? "/admin/pedidos/kanban"
+                        : `/admin/${id}`;
+                  if (id === "pedidos" || id === "kanban") {
+                    window.location.assign(path);
+                  } else {
+                    window.history.pushState({}, "", path);
+                  }
                 }
               }}
             >
