@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Plus, Search, ShoppingCart, X } from "lucide-react";
+import { ArrowLeft, Plus, Search, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { publicSupabase } from "../../lib/supabase";
 import CartPage from "./CartPage";
@@ -14,6 +14,16 @@ import { type CartItem, type Customer, type DeliveryAddress, type MenuCategory, 
 type Step = "menu" | "cart" | "fulfillment" | "address" | "customer" | "payment" | "review" | "confirmed";
 const CART_KEY = "della-nonna-public-cart";
 const emptyAddress: DeliveryAddress = { cep: "", rua: "", numero: "", complemento: "", bairro: "", referencia: "" };
+
+function isAdditionalCategory(name: string) {
+  const normalizedName = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+
+  return /^(?:adicion(?:al|ais)|bordas?)\b/.test(normalizedName);
+}
 
 function readCart(): CartItem[] {
   try {
@@ -107,7 +117,6 @@ export default function CardapioPublico() {
     try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch { /* armazenamento indisponível */ }
   }, [cart]);
 
-  const isAdditionalCategory = (name: string) => /adicional/i.test(name.trim());
   const additionalItems = useMemo(() => items.filter((item) => item.origem_tipo === "insumo" && isAdditionalCategory(item.categoria)), [items]);
   const visibleCategories = useMemo(() => categories.filter((category) => !isAdditionalCategory(category.nome)), [categories]);
   const filteredItems = useMemo(() => items.filter((item) => {
@@ -211,6 +220,51 @@ export default function CardapioPublico() {
   if (step === "review") return <ReviewPage items={cart} fulfillment={fulfillment as "delivery" | "retirada"} address={address} customer={customer} payment={payment as PaymentMethod} deliveryFee={deliveryFee} busy={busy} error={error} onBack={() => setStep("payment")} onConfirm={() => void submitOrder()}/>;
   if (step === "confirmed") return <OrderConfirmedPage orderNumber={confirmedOrderNumber} total={confirmedTotal} onHome={() => navigate("/pedido")}/>;
 
+  if (selectedPizza) {
+    const selectedExtrasTotal = additionalItems
+      .filter((item) => selectedExtras.includes(item.id))
+      .reduce((sum, item) => sum + item.preco_venda, 0);
+    const customizedUnitPrice = selectedPizza.preco_venda + selectedExtrasTotal;
+
+    return <main className="min-h-dvh bg-[#fbf5d9] pb-32 text-[#295727]">
+      <header className="sticky top-0 z-20 border-b border-[#e9e2c9] bg-[#fbf5d9]/95 px-4 py-3 backdrop-blur">
+        <div className="mx-auto flex max-w-xl items-center gap-3">
+          <button type="button" onClick={() => setSelectedPizza(null)} aria-label="Voltar ao cardápio" className="grid size-10 shrink-0 place-items-center rounded-full text-[#315c40] hover:bg-[#f0ead3]"><ArrowLeft size={19}/></button>
+          <div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#849078]">Personalizar pedido</p><h1 className="truncate font-serif text-lg font-bold text-[#155b3b]">{selectedPizza.nome_comercial}</h1></div>
+          <button type="button" onClick={() => { setSelectedPizza(null); setStep("cart"); }} aria-label={`Carrinho, ${cartCount} itens`} className="relative grid size-10 shrink-0 place-items-center rounded-full bg-[#fffbea] text-[#295727] shadow-sm"><ShoppingCart size={19}/>{cartCount > 0 && <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#b51e24] text-[10px] font-bold text-white">{cartCount}</span>}</button>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-xl px-4 py-4">
+        <section className="overflow-hidden rounded-2xl border border-[#e5ddbd] bg-[#fffbea] shadow-sm">
+          <div className="aspect-[2.1/1] overflow-hidden bg-[#f3eedb]">{selectedPizza.imagem_url ? <img src={selectedPizza.imagem_url} alt={selectedPizza.nome_comercial} className="h-full w-full object-cover"/> : <div className="grid h-full place-items-center text-6xl">🍕</div>}</div>
+          <div className="p-4"><div className="flex items-start justify-between gap-3"><div><h2 className="font-serif text-xl font-bold text-[#155b3b]">{selectedPizza.nome_comercial}</h2>{selectedPizza.descricao && <p className="mt-1 text-xs leading-relaxed text-[#71826a]">{selectedPizza.descricao}</p>}</div><strong className="shrink-0 text-base text-[#b52327]">{money(selectedPizza.preco_venda)}</strong></div></div>
+        </section>
+
+        <section className="mt-4 rounded-2xl border border-[#e5ddbd] bg-[#fffbea] p-4 shadow-sm">
+          <div className="mb-2"><h2 className="font-serif text-lg font-bold text-[#155b3b]">Adicionais</h2><p className="text-xs text-[#829078]">Escolha os extras para sua pizza</p></div>
+          {additionalItems.length === 0 ? <p className="rounded-lg bg-[#f7f1dc] p-3 text-sm text-[#71826a]">Nenhum adicional disponível no momento.</p> : <div className="divide-y divide-[#eee8d4]">{additionalItems.map((extra) => {
+            const checked = selectedExtras.includes(extra.id);
+            return <label key={extra.id} className="flex min-h-12 cursor-pointer items-center gap-3 py-2.5">
+              <input type="checkbox" checked={checked} onChange={(event) => setSelectedExtras((current) => event.target.checked ? [...current, extra.id] : current.filter((id) => id !== extra.id))} className="size-5 accent-[#b51e24]"/>
+              <span className="min-w-0 flex-1"><strong className="block text-sm font-semibold text-[#315c40]">{extra.nome_comercial}</strong>{extra.descricao && <small className="text-xs text-[#829078]">{extra.descricao}</small>}</span>
+              <span className="whitespace-nowrap text-sm text-[#71826a]">+ {money(extra.preco_venda)}</span>
+            </label>;
+          })}</div>}
+        </section>
+
+        <label className="mt-4 block rounded-2xl border border-[#e5ddbd] bg-[#fffbea] p-4 text-sm font-semibold text-[#315c40] shadow-sm">Observações <span className="font-normal text-[#829078]">(opcional)</span><textarea value={pizzaObservation} onChange={(event) => setPizzaObservation(event.target.value)} rows={3} maxLength={300} placeholder="Ex.: sem cebola, cortar em 8 pedaços" className="mt-2 w-full resize-y rounded-lg border border-[#e4dfc9] bg-[#fffdf2] p-3 text-sm font-normal outline-none focus:border-[#78936b]"/></label>
+      </div>
+
+      <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-[#e5ddbd] bg-[#fffbea]/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(49,92,64,0.08)] backdrop-blur">
+        <div className="mx-auto flex max-w-xl items-center gap-3">
+          <div className="inline-flex h-11 shrink-0 items-center rounded-full border border-[#e5ddbd] bg-[#fffdf2]"><button type="button" onClick={() => setPizzaQuantity((value) => Math.max(1, value - 1))} aria-label="Diminuir quantidade" className="grid size-10 place-items-center text-lg">−</button><span className="w-5 text-center text-sm font-semibold">{pizzaQuantity}</span><button type="button" onClick={() => setPizzaQuantity((value) => value + 1)} aria-label="Aumentar quantidade" className="grid size-10 place-items-center text-lg">+</button></div>
+          <button type="button" onClick={confirmPizzaAndExtras} className="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-[#b51e24] px-4 text-sm font-bold text-white shadow-sm"><Plus size={17}/><span className="truncate">Adicionar ao carrinho · {money(customizedUnitPrice * pizzaQuantity)}</span></button>
+        </div>
+      </footer>
+    </main>;
+  }
+
   return <main className="min-h-screen bg-[#fbf5d9] pb-24 text-[#295727]">
     <header className="sticky top-0 z-30 border-b border-[#e9e2c9] bg-[#fbf5d9]/95 px-4 py-3 backdrop-blur sm:px-8">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3"><button onClick={() => navigate("/pedido")} aria-label="Voltar ao início" className="grid size-10 place-items-center rounded-full text-[#54715b] hover:bg-[#f0ead3]"><ArrowLeft size={19}/></button><img src="/logo.png" alt="Della Nonna Pizzaria" className="h-12 max-w-[170px] object-contain"/><button onClick={() => setStep("cart")} className="relative inline-flex size-10 items-center justify-center rounded-full bg-[#fffbea] text-[#295727] shadow-sm" aria-label={`Carrinho, ${cartCount} itens`}><ShoppingCart size={20}/>{cartCount > 0 && <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#b51e24] text-[10px] font-bold text-white">{cartCount}</span>}</button></div>
@@ -223,34 +277,5 @@ export default function CardapioPublico() {
       {loading ? <p className="py-16 text-center text-sm text-[#71826a]">Carregando cardápio…</p> : filteredItems.length === 0 ? <p className="py-16 text-center text-sm text-[#71826a]">Nenhum item disponível nesta categoria.</p> : <section className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{filteredItems.map((item) => <article key={item.id} className="flex gap-3 rounded-xl border border-[#e5ddbd] bg-[#fffbea] p-3 shadow-sm"><div className="size-24 shrink-0 overflow-hidden rounded-lg bg-[#f3eedb]">{item.imagem_url ? <img src={item.imagem_url} alt={item.nome_comercial} loading="lazy" className="h-full w-full object-cover"/> : <div className="grid h-full place-items-center text-3xl">🍕</div>}</div><div className="flex min-w-0 flex-1 flex-col"><div className="flex items-start justify-between gap-2"><h2 className="min-w-0 font-serif font-bold text-[#155b3b]">{item.nome_comercial}</h2>{item.destaque && <span className="shrink-0 rounded-full bg-[#f8efd8] px-2 py-1 text-[9px] font-bold text-[#a16e1f]">Destaque</span>}</div><p className="mt-1 line-clamp-2 text-xs text-[#71826a]">{item.descricao}</p><div className="mt-auto flex items-center justify-between pt-2"><strong className="text-sm text-[#b52327]">{money(item.preco_venda)}</strong><button onClick={() => startAdd(item)} className="inline-flex h-9 items-center gap-1 rounded-full bg-[#b51e24] px-3 text-xs font-semibold text-white"><Plus size={15}/> Adicionar</button></div></div></article>)}</section>}
     </div>
     <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-center justify-around border-t border-[#e5ddbd] bg-[#fffbea] md:hidden"><button onClick={() => navigate("/pedido")} className="text-xs text-[#54715b]">⌂<span className="block">Início</span></button><span className="text-xs font-semibold text-[#b52327]">▤<span className="block">Cardápio</span></span><button onClick={() => setStep("cart")} className="text-xs text-[#54715b]">🛒{cartCount > 0 && ` ${cartCount}`}<span className="block">Carrinho</span></button></nav>
-    {selectedPizza && <div className="fixed inset-0 z-50 grid place-items-end bg-[#183a28]/50 p-0 backdrop-blur-[2px] sm:place-items-center sm:p-4" role="presentation" onMouseDown={() => setSelectedPizza(null)}>
-      <section role="dialog" aria-modal="true" aria-labelledby="customize-title" className="max-h-[94vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-[#fffbea] shadow-2xl sm:rounded-2xl" onMouseDown={(event) => event.stopPropagation()}>
-        <div className="relative aspect-[2.4/1] overflow-hidden bg-[#f3eedb]">
-          {selectedPizza.imagem_url ? <img src={selectedPizza.imagem_url} alt={selectedPizza.nome_comercial} className="h-full w-full object-cover"/> : <div className="grid h-full place-items-center text-5xl">🍕</div>}
-          <button onClick={() => setSelectedPizza(null)} aria-label="Fechar personalização" className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-white/90 text-[#315c40] shadow"><X size={18}/></button>
-        </div>
-        <div className="p-4 sm:p-5">
-          <h2 id="customize-title" className="font-serif text-xl font-bold text-[#155b3b]">{selectedPizza.nome_comercial}</h2>
-          <p className="mt-1 text-xs text-[#71826a]">{selectedPizza.descricao}</p>
-          <strong className="mt-2 block text-sm text-[#b52327]">{money(selectedPizza.preco_venda)}</strong>
-
-          <div className="mt-4 border-t border-[#e9e2c9] pt-3">
-            <h3 className="text-xs font-bold text-[#315c40]">Adicionais</h3>
-            {additionalItems.length === 0 ? <p className="mt-2 text-xs text-[#829078]">Nenhum adicional disponível no momento.</p> : <div className="mt-1 divide-y divide-[#eee8d4]">{additionalItems.map((extra) => <label key={extra.id} className="flex cursor-pointer items-center gap-2 py-2 text-xs">
-              <input type="checkbox" checked={selectedExtras.includes(extra.id)} onChange={(event) => setSelectedExtras((current) => event.target.checked ? [...current, extra.id] : current.filter((id) => id !== extra.id))} className="size-4 accent-[#b51e24]"/>
-              <span className="min-w-0 flex-1"><strong className="block text-[#315c40]">{extra.nome_comercial}</strong>{extra.descricao && <small className="text-[#829078]">{extra.descricao}</small>}</span>
-              <span className="whitespace-nowrap text-[#71826a]">+ {money(extra.preco_venda)}</span>
-            </label>)}</div>}
-          </div>
-
-          <label className="mt-3 block border-t border-[#e9e2c9] pt-3 text-xs font-semibold text-[#315c40]">Observações<textarea value={pizzaObservation} onChange={(event) => setPizzaObservation(event.target.value)} rows={2} maxLength={300} placeholder="Ex.: sem cebola, cortar em 8 pedaços" className="mt-1.5 w-full resize-y rounded-md border border-[#e4dfc9] bg-[#fffdf2] p-2 text-xs font-normal outline-none focus:border-[#78936b]"/></label>
-
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <div className="inline-flex h-9 items-center rounded-full border border-[#e5ddbd] bg-[#fffdf2]"><button onClick={() => setPizzaQuantity((value) => Math.max(1, value - 1))} aria-label="Diminuir quantidade" className="grid size-9 place-items-center">−</button><span className="w-6 text-center text-sm">{pizzaQuantity}</span><button onClick={() => setPizzaQuantity((value) => value + 1)} aria-label="Aumentar quantidade" className="grid size-9 place-items-center">+</button></div>
-            <button onClick={confirmPizzaAndExtras} className="h-10 flex-1 rounded-md bg-[#b51e24] px-3 text-xs font-bold text-white">Adicionar ao carrinho · {money((selectedPizza.preco_venda + additionalItems.filter((item) => selectedExtras.includes(item.id)).reduce((sum, item) => sum + item.preco_venda, 0)) * pizzaQuantity)}</button>
-          </div>
-        </div>
-      </section>
-    </div>}
   </main>;
 }
