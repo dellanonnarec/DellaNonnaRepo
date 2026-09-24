@@ -228,7 +228,7 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      <main className="">
+      <main className=" w-full">
         {databaseError && (
           <div className="database-error" role="alert">
             {databaseError}
@@ -252,19 +252,7 @@ export default function AdminLayout() {
                         : "Precificação"}
             </p>
 
-            <h1 className="font-serif text-xl font-bold leading-tight tracking-tight text-[#295727] sm:text-[30px]">
-              {activeSection === "insumos"
-                ? "Insumos e embalagens"
-                : activeSection === "fichas"
-                  ? "Fichas técnicas"
-                  : activeSection === "cardapio"
-                    ? "Cardápio"
-                    : activeSection === "pedidos"
-                      ? "Pedidos"
-                      : activeSection === "kanban"
-                        ? "Kanban"
-                        : "Precificação"}
-            </h1>
+           
           </div>
 
           <div className="flex shrink-0 items-center gap-3 text-[#315d3d]">

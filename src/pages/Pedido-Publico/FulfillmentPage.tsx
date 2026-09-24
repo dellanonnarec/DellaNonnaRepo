@@ -1,0 +1,7 @@
+import { ArrowLeft } from "lucide-react";
+
+type Props = { value: "delivery" | "retirada" | ""; onBack: () => void; onChoose: (value: "delivery" | "retirada") => void; onContinue: () => void };
+
+export default function FulfillmentPage({ value, onBack, onChoose, onContinue }: Props) {
+  return <main className="min-h-screen bg-[#fbf5d9] px-4 py-6 text-[#295727] sm:px-8"><div className="mx-auto max-w-xl"><button onClick={onBack} className="mb-5 inline-flex items-center gap-2 text-sm text-[#54715b]"><ArrowLeft size={17}/> Carrinho</button><p className="text-[11px] font-bold uppercase tracking-widest text-[#b52327]">Etapa 1 de 4</p><h1 className="mt-1 font-serif text-3xl font-bold text-[#155b3b]">Como quer receber?</h1><div className="mt-6 grid gap-3 sm:grid-cols-2">{([["delivery", "Entrega", "Receba seu pedido no endereço informado."], ["retirada", "Retirada no local", "Busque seu pedido na pizzaria."]] as const).map(([id, title, desc]) => <button key={id} onClick={() => onChoose(id)} className={`rounded-xl border p-5 text-left transition ${value === id ? "border-[#b51e24] bg-[#fff4e5] ring-2 ring-[#b51e24]/20" : "border-[#e5ddbd] bg-[#fffbea]"}`}><strong className="font-serif text-lg">{title}</strong><p className="mt-1 text-sm text-[#71826a]">{desc}</p></button>)}</div><button disabled={!value} onClick={onContinue} className="mt-6 h-12 w-full rounded-lg bg-[#b51e24] font-semibold text-[#fff9df] disabled:opacity-50">Continuar</button></div></main>;
+}

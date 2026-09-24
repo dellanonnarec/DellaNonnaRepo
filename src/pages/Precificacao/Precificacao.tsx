@@ -144,226 +144,195 @@ export default function Precificacao() {
     () => persistedGas?.gasIncluded ?? false,
   );
   useEffect(() => {
-  if (!supabase) return;
+    if (!supabase) return;
 
-  let mounted = true;
+    let mounted = true;
 
-  const loadPricingData = async () => {
-    const [
-      ingredientsResponse,
-      assumptionsResponse,
-      recipesResponse,
-      pricingResponse,
-      gasResponse,
-      doughResponse,
-    ] = await Promise.all([
-      supabase
-        .from("insumos")
-        .select("*")
-        .order("created_at"),
+    const loadPricingData = async () => {
+      const [
+        ingredientsResponse,
+        assumptionsResponse,
+        recipesResponse,
+        pricingResponse,
+        gasResponse,
+        doughResponse,
+      ] = await Promise.all([
+        supabase.from("insumos").select("*").order("created_at"),
 
-      supabase
-        .from("premissas_conversao")
-        .select("*"),
+        supabase.from("premissas_conversao").select("*"),
 
-      supabase
-        .from("fichas_tecnicas")
-        .select("*")
-        .order("ordem"),
+        supabase.from("fichas_tecnicas").select("*").order("ordem"),
 
-      supabase
-        .from("precificacao")
-        .select("*")
-        .order("pizza_nome"),
+        supabase.from("precificacao").select("*").order("pizza_nome"),
 
-      supabase
-        .from("gas")
-        .select("*")
-        .eq("id", true)
-        .maybeSingle(),
+        supabase.from("gas").select("*").eq("id", true).maybeSingle(),
 
-      supabase
-        .from("receita_massa")
-        .select("*")
-        .order("ingrediente_nome"),
-    ]);
+        supabase.from("receita_massa").select("*").order("ingrediente_nome"),
+      ]);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    const failedResponse = [
-      ingredientsResponse,
-      assumptionsResponse,
-      recipesResponse,
-      pricingResponse,
-      gasResponse,
-      doughResponse,
-    ].find((response) => response.error);
+      const failedResponse = [
+        ingredientsResponse,
+        assumptionsResponse,
+        recipesResponse,
+        pricingResponse,
+        gasResponse,
+        doughResponse,
+      ].find((response) => response.error);
 
-    if (failedResponse?.error) {
-      console.error(
-        "Falha ao carregar dados da precificação:",
-        failedResponse.error,
-      );
-
-      return;
-    }
-
-    const ingredientRows = ingredientsResponse.data ?? [];
-    const assumptionRows = assumptionsResponse.data ?? [];
-    const recipeRows = recipesResponse.data ?? [];
-    const pricingRows = pricingResponse.data ?? [];
-    const gasRow = gasResponse.data;
-    const doughRows = doughResponse.data ?? [];
-
-    // ==========================================
-    // INGREDIENTES
-    // ==========================================
-
-    const uniqueIngredients = new Map<
-      string,
-      (typeof ingredientRows)[number]
-    >();
-
-    ingredientRows.forEach((row) => {
-      const key = `${normalizeName(row.nome)}::${row.categoria}`;
-
-      const current = uniqueIngredients.get(key);
-
-      if (
-        !current ||
-        Number(row.preco_pago) > Number(current.preco_pago) ||
-        row.updated_at > current.updated_at
-      ) {
-        uniqueIngredients.set(key, row);
-      }
-    });
-
-    setIngredients(
-      [...uniqueIngredients.values()].map((row, index) => ({
-        id: index + 1,
-        dbId: row.id,
-        name: row.nome,
-        brand: row.marca_obs ?? "",
-        pack: Number(row.qtd_embalagem ?? 0),
-        unit: row.unidade,
-        price: Number(row.preco_pago ?? 0),
-        category: row.categoria,
-      })),
-    );
-
-    // ==========================================
-    // PREMISSAS DE CONVERSÃO
-    // ==========================================
-
-    setConversion({
-      cebola: Number(
-        assumptionRows.find((row) =>
-          row.item.startsWith("Cebola"),
-        )?.peso_medio_g ?? 130,
-      ),
-
-      azeitona: Number(
-        assumptionRows.find((row) =>
-          row.item.startsWith("Azeitona"),
-        )?.peso_medio_g ?? 4,
-      ),
-    });
-
-    // ==========================================
-    // GÁS
-    // ==========================================
-
-    if (gasRow) {
-      const loadedGas: Gas = {
-        price: Number(gasRow.preco_botijao ?? 0),
-        weight: Number(gasRow.peso_botijao_kg ?? 0),
-        consumption: Number(gasRow.consumo_kg_hora ?? 0),
-        minutes: Number(gasRow.tempo_turno_min ?? 0),
-        pizzas: Number(gasRow.pizzas_por_turno ?? 0),
-      };
-
-      setGas(loadedGas);
-      setGasIncluded(Boolean(gasRow.incluir_no_custo));
-
-      // Mantém também o localStorage sincronizado
-      try {
-        window.localStorage.setItem(
-          gasStorageKey,
-          JSON.stringify({
-            gas: loadedGas,
-            gasIncluded: Boolean(gasRow.incluir_no_custo),
-          }),
+      if (failedResponse?.error) {
+        console.error(
+          "Falha ao carregar dados da precificação:",
+          failedResponse.error,
         );
-      } catch {
-        // Ignora erro de localStorage
+
+        return;
       }
-    }
 
-    // ==========================================
-    // RECEITA BASE DA MASSA
-    // ==========================================
+      const ingredientRows = ingredientsResponse.data ?? [];
+      const assumptionRows = assumptionsResponse.data ?? [];
+      const recipeRows = recipesResponse.data ?? [];
+      const pricingRows = pricingResponse.data ?? [];
+      const gasRow = gasResponse.data;
+      const doughRows = doughResponse.data ?? [];
 
-    if (doughRows.length) {
-      const values: Dough = {
-        flour: 0,
-        water: 0,
-        yeast: 0,
-        salt: 0,
-        oil: 0,
-        yield: Number(
-          doughRows[0].rendimento_pizzas ?? 5,
-        ),
-      };
+      // ==========================================
+      // INGREDIENTES
+      // ==========================================
 
-      doughRows.forEach((row) => {
-        const key = row.ingrediente_nome.toLowerCase();
+      const uniqueIngredients = new Map<
+        string,
+        (typeof ingredientRows)[number]
+      >();
 
-        if (key.includes("farinha")) {
-          values.flour = Number(row.quantidade_g ?? 0);
-        }
+      ingredientRows.forEach((row) => {
+        const key = `${normalizeName(row.nome)}::${row.categoria}`;
+
+        const current = uniqueIngredients.get(key);
 
         if (
-          key.includes("água") ||
-          key.includes("agua")
+          !current ||
+          Number(row.preco_pago) > Number(current.preco_pago) ||
+          row.updated_at > current.updated_at
         ) {
-          values.water = Number(row.quantidade_g ?? 0);
-        }
-
-        if (key.includes("fermento")) {
-          values.yeast = Number(row.quantidade_g ?? 0);
-        }
-
-        if (key.includes("sal")) {
-          values.salt = Number(row.quantidade_g ?? 0);
-        }
-
-        if (
-          key.includes("óleo") ||
-          key.includes("oleo")
-        ) {
-          values.oil = Number(row.quantidade_g ?? 0);
+          uniqueIngredients.set(key, row);
         }
       });
 
-      setDough(values);
-    }
+      setIngredients(
+        [...uniqueIngredients.values()].map((row, index) => ({
+          id: index + 1,
+          dbId: row.id,
+          name: row.nome,
+          brand: row.marca_obs ?? "",
+          pack: Number(row.qtd_embalagem ?? 0),
+          unit: row.unidade,
+          price: Number(row.preco_pago ?? 0),
+          category: row.categoria,
+        })),
+      );
 
-    // ==========================================
-    // PIZZAS / FICHAS TÉCNICAS
-    // ==========================================
+      // ==========================================
+      // PREMISSAS DE CONVERSÃO
+      // ==========================================
 
-    const names = [
-      ...new Set([
-        ...pricingRows.map((row) => row.pizza_nome),
-        ...recipeRows.map((row) => row.pizza_nome),
-      ]),
-    ];
+      setConversion({
+        cebola: Number(
+          assumptionRows.find((row) => row.item.startsWith("Cebola"))
+            ?.peso_medio_g ?? 130,
+        ),
 
-    const loadedPizzas: Pizza[] = names.map(
-      (name, index) => {
-        const pricing = pricingRows.find(
-          (row) => row.pizza_nome === name,
-        );
+        azeitona: Number(
+          assumptionRows.find((row) => row.item.startsWith("Azeitona"))
+            ?.peso_medio_g ?? 4,
+        ),
+      });
+
+      // ==========================================
+      // GÁS
+      // ==========================================
+
+      if (gasRow) {
+        const loadedGas: Gas = {
+          price: Number(gasRow.preco_botijao ?? 0),
+          weight: Number(gasRow.peso_botijao_kg ?? 0),
+          consumption: Number(gasRow.consumo_kg_hora ?? 0),
+          minutes: Number(gasRow.tempo_turno_min ?? 0),
+          pizzas: Number(gasRow.pizzas_por_turno ?? 0),
+        };
+
+        setGas(loadedGas);
+        setGasIncluded(Boolean(gasRow.incluir_no_custo));
+
+        // Mantém também o localStorage sincronizado
+        try {
+          window.localStorage.setItem(
+            gasStorageKey,
+            JSON.stringify({
+              gas: loadedGas,
+              gasIncluded: Boolean(gasRow.incluir_no_custo),
+            }),
+          );
+        } catch {
+          // Ignora erro de localStorage
+        }
+      }
+
+      // ==========================================
+      // RECEITA BASE DA MASSA
+      // ==========================================
+
+      if (doughRows.length) {
+        const values: Dough = {
+          flour: 0,
+          water: 0,
+          yeast: 0,
+          salt: 0,
+          oil: 0,
+          yield: Number(doughRows[0].rendimento_pizzas ?? 5),
+        };
+
+        doughRows.forEach((row) => {
+          const key = row.ingrediente_nome.toLowerCase();
+
+          if (key.includes("farinha")) {
+            values.flour = Number(row.quantidade_g ?? 0);
+          }
+
+          if (key.includes("água") || key.includes("agua")) {
+            values.water = Number(row.quantidade_g ?? 0);
+          }
+
+          if (key.includes("fermento")) {
+            values.yeast = Number(row.quantidade_g ?? 0);
+          }
+
+          if (key.includes("sal")) {
+            values.salt = Number(row.quantidade_g ?? 0);
+          }
+
+          if (key.includes("óleo") || key.includes("oleo")) {
+            values.oil = Number(row.quantidade_g ?? 0);
+          }
+        });
+
+        setDough(values);
+      }
+
+      // ==========================================
+      // PIZZAS / FICHAS TÉCNICAS
+      // ==========================================
+
+      const names = [
+        ...new Set([
+          ...pricingRows.map((row) => row.pizza_nome),
+          ...recipeRows.map((row) => row.pizza_nome),
+        ]),
+      ];
+
+      const loadedPizzas: Pizza[] = names.map((name, index) => {
+        const pricing = pricingRows.find((row) => row.pizza_nome === name);
 
         const lines = recipeRows
           .filter((row) =>
@@ -371,23 +340,21 @@ export default function Precificacao() {
               ? row.pizza_id === pricing.id
               : row.pizza_nome === name,
           )
-          .filter((row, rowIndex, rows) =>
-            rows.findIndex(
-              (candidate) =>
-                candidate.ingrediente_nome ===
-                  row.ingrediente_nome &&
-                Number(candidate.quantidade) ===
-                  Number(row.quantidade) &&
-                candidate.tipo === row.tipo &&
-                candidate.ordem === row.ordem,
-            ) === rowIndex,
+          .filter(
+            (row, rowIndex, rows) =>
+              rows.findIndex(
+                (candidate) =>
+                  candidate.ingrediente_nome === row.ingrediente_nome &&
+                  Number(candidate.quantidade) === Number(row.quantidade) &&
+                  candidate.tipo === row.tipo &&
+                  candidate.ordem === row.ordem,
+              ) === rowIndex,
           )
           .map((row, lineIndex) => ({
             id: lineIndex + 1,
             dbId: row.id,
             ingredient: row.ingrediente_nome,
-            ingredientId:
-              row.ingrediente_id ?? undefined,
+            ingredientId: row.ingrediente_id ?? undefined,
             quantity: Number(row.quantidade ?? 0),
             type: row.tipo,
           }));
@@ -400,60 +367,41 @@ export default function Precificacao() {
 
           lines,
 
-          salePrice: Number(
-            pricing?.preco_venda ?? 0,
-          ),
+          salePrice: Number(pricing?.preco_venda ?? 0),
 
-          category:
-            pricing?.categoria === "massa"
-              ? "massa"
-              : "pizza",
+          category: pricing?.categoria === "massa" ? "massa" : "pizza",
 
-          doughSize:
-            pricing?.tamanho_massa === "grande"
-              ? "grande"
-              : "broto",
+          doughSize: pricing?.tamanho_massa === "grande" ? "grande" : "broto",
 
-          doughRecipe:
-            pricing?.massa_utilizada ?? "",
+          doughRecipe: pricing?.massa_utilizada ?? "",
 
-          massYield: Number(
-            pricing?.rendimento_massa ?? 5,
-          ),
+          massYield: Number(pricing?.rendimento_massa ?? 5),
 
           competitors: [
-            pricing?.concorrente_massa_arretada ==
-            null
+            pricing?.concorrente_massa_arretada == null
               ? null
-              : Number(
-                  pricing.concorrente_massa_arretada,
-                ),
+              : Number(pricing.concorrente_massa_arretada),
 
             pricing?.concorrente_dantas == null
               ? null
-              : Number(
-                  pricing.concorrente_dantas,
-                ),
+              : Number(pricing.concorrente_dantas),
 
             pricing?.concorrente_farini == null
               ? null
-              : Number(
-                  pricing.concorrente_farini,
-                ),
+              : Number(pricing.concorrente_farini),
           ],
         };
-      },
-    );
+      });
 
-    setPizzas(loadedPizzas);
-  };
+      setPizzas(loadedPizzas);
+    };
 
-  void loadPricingData();
+    void loadPricingData();
 
-  return () => {
-    mounted = false;
-  };
-}, [supabase]);
+    return () => {
+      mounted = false;
+    };
+  }, [supabase]);
   const pricingSaveTimers = new Map<number, ReturnType<typeof setTimeout>>();
   const pricingSaveQueues = new Map<string, Promise<string | undefined>>();
   const unitPrice = (item?: Ingredient) =>
@@ -526,12 +474,11 @@ export default function Precificacao() {
         gas.pizzas
       : 0;
 
-      
- const flashSaved = () => {
+  const flashSaved = () => {
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1200);
   };
- const savePricingToSupabase = async (pizza: Pizza) => {
+  const savePricingToSupabase = async (pizza: Pizza) => {
     if (!supabase) return pizza.dbId;
     const queueKey = pizza.dbId ?? pizza.name;
     const previous = pricingSaveQueues.get(queueKey) ?? Promise.resolve();
@@ -592,17 +539,17 @@ export default function Precificacao() {
     return dbId;
   };
   const schedulePricingSave = (pizza: Pizza) => {
-  if (!supabase || !pizza.dbId) return;
-  const currentTimer = pricingSaveTimers.get(pizza.id);
-  if (currentTimer) clearTimeout(currentTimer);
-  pricingSaveTimers.set(
-    pizza.id,
-    setTimeout(() => {
-      pricingSaveTimers.delete(pizza.id);
-      void savePricingToSupabase(pizza);
-    }, 400),
-  );
-};
+    if (!supabase || !pizza.dbId) return;
+    const currentTimer = pricingSaveTimers.get(pizza.id);
+    if (currentTimer) clearTimeout(currentTimer);
+    pricingSaveTimers.set(
+      pizza.id,
+      setTimeout(() => {
+        pricingSaveTimers.delete(pizza.id);
+        void savePricingToSupabase(pizza);
+      }, 400),
+    );
+  };
 
   const updatePizza = (
     id: number,
@@ -623,68 +570,89 @@ export default function Precificacao() {
     flashSaved();
   };
   return (
-    <section className="page-section">
-      <div className="section-intro">
+    <section className="min-h-screen bg-[#fbf5d9] px-6  text-[#295727] sm:px-8 lg:px-11">
+      <div className="mb-7 flex flex-col items-start justify-between gap-5 xl:flex-row xl:items-end">
         <div>
-          <p className="eyebrow orange">ESTRATÉGIA COMERCIAL</p>
-
-          <h2>Precificação</h2>
-
-          <p className="section-description">
+          <p className="font-serif text-3xl font-bold tracking-tight text-[#155b3b]">
+            Estratégia comercial
+          </p>
+          <p className="mt-1 max-w-2xl text-sm text-[#54715b]">
             Veja onde sua margem está saudável e como você se posiciona na
             região.
           </p>
         </div>
 
-        <div className="legend">
-          <span>
-            <i className="green" /> Margem saudável
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-[#e5ddbd] bg-[#fffbea] px-4 py-3 text-xs text-[#54715b]">
+          <span className="inline-flex items-center gap-2">
+            <i className="size-2 rounded-full bg-[#438457]" />
+            Margem saudável
           </span>
 
-          <span>
-            <i className="yellow" /> Atenção
+          <span className="inline-flex items-center gap-2">
+            <i className="size-2 rounded-full bg-[#d69b38]" />
+            Atenção
           </span>
 
-          <span>
-            <i className="red" /> Revisar preço
+          <span className="inline-flex items-center gap-2">
+            <i className="size-2 rounded-full bg-[#b52327]" />
+            Revisar preço
           </span>
         </div>
       </div>
 
-      <div className="table-card pricing-card">
-        <div className="table-toolbar">
-          <div>
-            <strong>Margem por sabor</strong>
+      <div className="overflow-hidden rounded-lg border border-[#e5ddbd] bg-[#fffbea] shadow-[0_2px_8px_rgba(47,69,44,0.06)]">
+        <div className="flex flex-col gap-3 border-b border-[#e9e2c9] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex items-center gap-3">
+            <strong className="font-serif text-lg font-bold text-[#155b3b]">
+              Margem por sabor
+            </strong>
 
-            <span className="count-badge">{pizzaRecipes.length} sabores</span>
+            <span className="rounded-full bg-[#edf0d9] px-2.5 py-1 text-[10px] font-semibold text-[#426548]">
+              {pizzaRecipes.length} sabores
+            </span>
           </div>
 
-          <span className="autosave">
-            <Save size={14} /> Atualização automática
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-[#71826a]">
+            <Save size={14} className="text-[#438457]" />
+            Atualização automática
           </span>
         </div>
 
-        <div className="table-scroll">
-          <table className="pricing-table">
-            <thead>
+        <div className="overflow-x-auto overflow-y-auto max-h-[700px]">
+          <table className="w-full min-w-[940px] border-collapse text-left">
+            <thead className="bg-[#f5f0d9]">
               <tr>
-                <th>Sabor</th>
-                <th>Custo total</th>
-                <th>Preço de venda</th>
-                <th>Margem R$</th>
-                <th>Margem %</th>
-                <th>Massa Arretada</th>
-                <th>Dantas</th>
-                <th>Farini</th>
+                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                  Sabor
+                </th>
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                  Custo total
+                </th>
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                  Preço de venda
+                </th>
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                  Margem R$
+                </th>
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                  Margem %
+                </th>
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                  Massa Arretada
+                </th>
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                  Dantas
+                </th>
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                  Farini
+                </th>
               </tr>
             </thead>
 
-            <tbody>
+            <tbody className="divide-y divide-[#eee8d4]">
               {pizzaRecipes.map((pizza) => {
                 const cost = totalCost(pizza);
-
                 const margin = pizza.salePrice - cost;
-
                 const percentage =
                   pizza.salePrice > 0 ? margin / pizza.salePrice : 0;
 
@@ -695,19 +663,30 @@ export default function Precificacao() {
                       ? "warn"
                       : "bad";
 
+                const marginStyle =
+                  color === "good"
+                    ? "bg-[#e8f0df] text-[#34704a]"
+                    : color === "warn"
+                      ? "bg-[#f8efd8] text-[#a16e1f]"
+                      : "bg-[#f7e5dc] text-[#ad342b]";
+
                 return (
-                  <tr key={pizza.id}>
-                    <td>
-                      <strong>{pizza.name}</strong>
+                  <tr key={pizza.id} className="transition hover:bg-[#fcf8e9]">
+                    <td className="px-4 py-3">
+                      <strong className="font-serif text-sm font-bold text-[#315c40]">
+                        {pizza.name}
+                      </strong>
                     </td>
 
-                    <td>{money(cost)}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-xs text-[#54715b]">
+                      {money(cost)}
+                    </td>
 
-                    <td>
-                      <div className="currency-input sale">
-                        <span>R$</span>
-
+                    <td className="px-3 py-3">
+                      <div className="flex h-8 w-28 items-center rounded-md border border-[#e4dfc9] bg-[#fffdf2] px-2 text-xs text-[#789078] focus-within:border-[#78936b]">
+                        <span className="mr-1">R$</span>
                         <input
+                          className="w-full min-w-0 bg-transparent text-right text-xs text-[#315c40] outline-none"
                           type="number"
                           step="0.01"
                           value={pizza.salePrice}
@@ -722,12 +701,16 @@ export default function Precificacao() {
                       </div>
                     </td>
 
-                    <td>
-                      <strong>{money(margin)}</strong>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <strong className="text-xs font-semibold text-[#315c40]">
+                        {money(margin)}
+                      </strong>
                     </td>
 
-                    <td>
-                      <span className={`margin-pill ${color}`}>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${marginStyle}`}
+                      >
                         {(percentage * 100).toLocaleString("pt-BR", {
                           minimumFractionDigits: 1,
                           maximumFractionDigits: 1,
@@ -737,9 +720,11 @@ export default function Precificacao() {
                     </td>
 
                     {pizza.competitors.map((price, index) => (
-                      <td key={index}>
+                      <td className="px-3 py-3" key={index}>
                         <input
-                          className="competitor-input"
+                          className="h-8 w-24 rounded-md border border-[#e4dfc9] bg-[#fffdf2] px-2 text-xs text-[#315c40] outline-none placeholder:text-[#a4a187] focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/15"
+                          type="number"
+                          step="0.01"
                           placeholder="sem dado"
                           value={price ?? ""}
                           onChange={(event) =>
@@ -772,34 +757,42 @@ export default function Precificacao() {
         </div>
       </div>
 
-      <div className="gas-card">
-        <div className="gas-heading">
-          <div className="gas-icon">
-            <Flame size={21} />
+      <div className="mt-6 overflow-hidden rounded-lg border border-[#e5ddbd] bg-[#fffbea] shadow-[0_2px_8px_rgba(47,69,44,0.04)]">
+        <div className="flex flex-col gap-4 border-b border-[#e9e2c9] px-5 py-5 lg:flex-row lg:items-center">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-[#f8e9dd] text-[#b44b30]">
+              <Flame size={21} />
+            </div>
+
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#b52327]">
+                Estimativa operacional
+              </span>
+
+              <h3 className="mt-0.5 font-serif text-lg font-bold text-[#155b3b]">
+                Custo de gás
+              </h3>
+
+              <p className="mt-1 text-xs text-[#71826a]">
+                Este valor é uma referência e não entra no custo total por
+                padrão.
+              </p>
+            </div>
           </div>
 
-          <div>
-            <span className="recipe-kicker">ESTIMATIVA OPERACIONAL</span>
-
-            <h3>Custo de gás</h3>
-
-            <p>
-              Este valor é uma referência e não entra no custo total por padrão.
-            </p>
-          </div>
-
-          <label className="toggle-label">
+          <label className="inline-flex shrink-0 cursor-pointer items-center gap-2.5 text-xs font-medium text-[#426548]">
             <input
+              className="peer sr-only"
               type="checkbox"
               checked={gasIncluded}
               onChange={(event) => setGasIncluded(event.target.checked)}
             />
-            <span className="toggle" />
+            <span className="relative h-5 w-9 rounded-full bg-[#d8d5bd] transition peer-checked:bg-[#34704a] peer-focus-visible:ring-2 peer-focus-visible:ring-[#34704a]/30 peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-4" />
             Incluir no custo da pizza
           </label>
         </div>
 
-        <div className="gas-grid">
+        <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3">
           {(
             [
               ["Preço do botijão", "price", "R$"],
@@ -809,11 +802,15 @@ export default function Precificacao() {
               ["Pizzas por turno", "pizzas", "pizzas"],
             ] as const
           ).map(([label, key, suffix]) => (
-            <label key={key}>
+            <label
+              className="block text-[11px] font-medium text-[#526d58]"
+              key={key}
+            >
               {label}
 
-              <div className="input-with-suffix">
+              <div className="mt-1.5 flex h-9 items-center rounded-md border border-[#e4dfc9] bg-[#fffdf2] px-3 focus-within:border-[#78936b] focus-within:ring-2 focus-within:ring-[#78936b]/15">
                 <input
+                  className="w-full min-w-0 bg-transparent text-xs text-[#315c40] outline-none"
                   type="number"
                   step="0.1"
                   value={gas[key]}
@@ -825,17 +822,23 @@ export default function Precificacao() {
                   }
                 />
 
-                <span>{suffix}</span>
+                <span className="ml-2 whitespace-nowrap text-[10px] text-[#829078]">
+                  {suffix}
+                </span>
               </div>
             </label>
           ))}
 
-          <div className="gas-result">
-            <span>Custo estimado por pizza</span>
+          <div className="flex flex-col justify-center rounded-md border border-[#dfe6cf] bg-[#f1f3df] px-4 py-3 sm:col-span-2 xl:col-span-1">
+            <span className="text-[10px] font-medium text-[#54715b]">
+              Custo estimado por pizza
+            </span>
 
-            <strong>{money(gasCost)}</strong>
+            <strong className="mt-0.5 font-mono text-lg font-bold text-[#b52327]">
+              {money(gasCost)}
+            </strong>
 
-            <small>
+            <small className="mt-0.5 text-[10px] text-[#71826a]">
               {gasIncluded
                 ? "Incluído nos custos acima"
                 : "Não incluído no custo total"}

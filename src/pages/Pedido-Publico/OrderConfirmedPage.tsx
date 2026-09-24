@@ -1,0 +1,7 @@
+import { CheckCircle2, Home } from "lucide-react";
+import { money } from "./types";
+
+type Props = { orderNumber: number | null; total: number; onHome: () => void };
+export default function OrderConfirmedPage({ orderNumber, total, onHome }: Props) {
+  return <main className="grid min-h-screen place-items-center bg-[#fbf5d9] px-4 py-10 text-[#295727]"><section className="w-full max-w-md rounded-2xl border border-[#e5ddbd] bg-[#fffbea] p-7 text-center shadow-sm"><CheckCircle2 className="mx-auto text-[#438457]" size={54}/><p className="mt-4 text-[11px] font-bold uppercase tracking-widest text-[#b52327]">Pedido recebido</p><h1 className="mt-1 font-serif text-3xl font-bold text-[#155b3b]">Obrigado!</h1><p className="mt-3 text-sm text-[#71826a]">Seu pedido foi enviado para a pizzaria.</p>{orderNumber !== null && <p className="mt-4 rounded-lg bg-[#f1f3df] p-3 text-sm">Pedido <strong>#{orderNumber}</strong></p>}<p className="mt-3 text-sm">Total: <strong>{money(total)}</strong></p><button onClick={onHome} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#b51e24] font-semibold text-[#fff9df]"><Home size={16}/> Voltar ao início</button></section></main>;
+}

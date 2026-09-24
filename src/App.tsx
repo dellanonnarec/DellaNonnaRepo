@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import Pedido from "./pages/Pedido/Pedido";
+import Pedido from "./pages/Pedido-Publico/Pedido";
 import AdminPedidos from "./pages/Pedidos/AdminPedidosPage";
 import AdminPedidosKanban from "./pages/Pedidos/AdminPedidosKanbanPage";
 import { publicSupabase } from "./lib/supabase";
 import "./App.css";
 import AuthLogin from "./pages/auth/AuthLogin";
 
-import CardapioPublico from "./pages/Pedido/CardapioPublico"; 
+import CardapioPublico from "./pages/Pedido-Publico/CardapioPublico"; 
 import {
   Routes,
   Route,

@@ -1,0 +1,11 @@
+import { ArrowLeft } from "lucide-react";
+import type { DeliveryAddress } from "./types";
+
+type Props = { value: DeliveryAddress; onChange: (value: DeliveryAddress) => void; onBack: () => void; onContinue: () => void };
+const fields: { key: keyof DeliveryAddress; label: string; required?: boolean; className?: string }[] = [
+  { key: "cep", label: "CEP", required: true }, { key: "rua", label: "Rua", required: true, className: "sm:col-span-2" }, { key: "numero", label: "Número", required: true }, { key: "complemento", label: "Complemento" }, { key: "bairro", label: "Bairro", required: true }, { key: "referencia", label: "Ponto de referência", className: "sm:col-span-2" },
+];
+export default function AddressPage({ value, onChange, onBack, onContinue }: Props) {
+  const valid = Boolean(value.cep.trim() && value.rua.trim() && value.numero.trim() && value.bairro.trim());
+  return <main className="min-h-screen bg-[#fbf5d9] px-4 py-6 text-[#295727] sm:px-8"><div className="mx-auto max-w-xl"><button onClick={onBack} className="mb-5 inline-flex items-center gap-2 text-sm text-[#54715b]"><ArrowLeft size={17}/> Voltar</button><p className="text-[11px] font-bold uppercase tracking-widest text-[#b52327]">Etapa 2 de 4</p><h1 className="mt-1 font-serif text-3xl font-bold text-[#155b3b]">Endereço de entrega</h1><div className="mt-6 grid gap-4 rounded-xl border border-[#e5ddbd] bg-[#fffbea] p-5 sm:grid-cols-2">{fields.map(({ key, label, required, className }) => <label key={key} className={`text-xs font-semibold text-[#526d58] ${className ?? ""}`}>{label}<input required={required} autoComplete={key === "numero" ? "off" : key} value={value[key]} onChange={(event) => onChange({ ...value, [key]: event.target.value })} className="mt-1.5 h-10 w-full rounded-md border border-[#e4dfc9] bg-[#fffdf2] px-3 text-sm font-normal text-[#315c40] outline-none focus:border-[#78936b]"/></label>)}</div><button disabled={!valid} onClick={onContinue} className="mt-5 h-12 w-full rounded-lg bg-[#b51e24] font-semibold text-[#fff9df] disabled:opacity-50">Continuar</button></div></main>;
+}
