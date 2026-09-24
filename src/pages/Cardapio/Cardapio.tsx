@@ -746,7 +746,7 @@ export default function Cardapio() {
       preco_venda: "0",
       disponivel: true,
       destaque: false,
-      ordem_exibicao: String(items.length + 1),
+      ordem_exibicao: String(menuItems.length + 1),
       observacoes_internas: "",
     });
 

@@ -4,12 +4,14 @@ import {
   ChevronRight,
   Minus,
   Plus,
-  ShoppingBag,
   ShoppingCart,
   X,
+  ArrowRight,
 } from "lucide-react";
+import { FaCircle } from "react-icons/fa";
 import { publicSupabase } from "../../lib/supabase";
 import "./Pedido.css";
+import { useNavigate } from "react-router-dom";
 
 type MenuItem = {
   id: string;
@@ -90,6 +92,7 @@ export default function Pedido() {
     payment: "pix",
     note: "",
   });
+  const navigate = useNavigate();
 
   useEffect(() => {
     localStorage.setItem(cartKey, JSON.stringify(cart));
@@ -211,9 +214,9 @@ export default function Pedido() {
 
   if (confirmation) return <Confirmation order={confirmation} />;
   return (
-    <main className="min-h-screen bg-[#F7F7F8] pb-24 md:pb-0">
+    <main className="min-h-screen bg-[#FCF7ED] pb-24 md:pb-0">
       {/* Header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between bg-white px-4 py-3 shadow-sm md:px-10 lg:px-16">
+      <header className="sticky top-0 z-30 flex items-center justify-between bg-[#FCF7ED] px-4 py-3 shadow-sm md:px-10 lg:px-16">
         <div className="mx-auto flex flex-col w-full max-w-6xl items-center justify-between">
           <div className="relative flex w-full items-center justify-center">
             {/* Logo centralizada */}
@@ -227,14 +230,28 @@ export default function Pedido() {
                 className="relative flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200"
                 aria-label="Carrinho"
               >
-                <ShoppingCart size={19} />
-                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
+                <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 lg:h-8 lg:w-8" />
+
+                <span
+                  className="
+                   absolute
+                   -right-1 -top-1
+                   flex items-center justify-center
+                   rounded-full
+                   bg-orange-500
+                   text-white font-bold
+                   h-4 w-4 text-[9px]
+                   sm:h-5 sm:w-5 sm:text-[10px]
+                   md:h-6 md:w-6 md:text-[11px]
+                 "
+                >
                   2
                 </span>
               </button>
             </div>
           </div>
-          <div className="pt-5">
+          <div className="pt-5 flex items-center gap-2 justify-center">
+            <FaCircle color="#295727" size={14} />
             <span className=" text-[13px] font-bold  text-[#295727]">
               Aberto agora 18h às 23h
             </span>
@@ -260,24 +277,24 @@ export default function Pedido() {
             aria-hidden="true"
           >
             <path
-              fill="#ffffff"
+              fill="#FCF7ED"
               d="M 0 156 C 216 133 453 105 600 132 C 712 152 763 206 759 288 C 759 384 878 391 1026 400 L 0 400 Z"
             />
           </svg>
 
           <div className="absolute inset-x-0 bottom-0 p-[clamp(1rem,4vw,2rem)] pb-10 text-white sm:pb-16 md:pb-20">
-  <span className="mt-1 block text-[clamp(2rem,6vw,4rem)] font-bold leading-[1.05] text-[#295727]">
-    Pizza feita
-    <br />
-    <span className="text-[#ac1917]">com carinho.</span>
-  </span>
+            <span className="mt-1 block text-[clamp(2rem,6vw,4rem)] font-bold leading-[1.05] text-[#295727]">
+              Pizza feita
+              <br />
+              <span className="text-[#ac1917]">com carinho.</span>
+            </span>
 
-  <p className="mt-[clamp(0.4rem,1.5vw,0.75rem)] max-w-[clamp(14rem,45vw,20rem)] text-[clamp(0.75rem,2vw,1rem)] leading-[1.35] text-[#295727]">
-    Sabor, tradição e qualidade
-    <br />
-    em todo pedido.
-  </p>
-</div>
+            <p className="mt-[clamp(0.4rem,1.5vw,0.75rem)] max-w-[clamp(14rem,45vw,20rem)] text-[clamp(0.75rem,2vw,1rem)] leading-[1.35] text-[#295727]">
+              Sabor, tradição e qualidade
+              <br />
+              em todo pedido.
+            </p>
+          </div>
         </section>
 
         {error && (
@@ -315,7 +332,7 @@ export default function Pedido() {
         </nav>
 
         {/* Conteúdo */}
-        <section className="mt-6">
+        <section className="mt-6 p-4">
           {loading ? (
             <div className="py-16 text-center text-sm text-gray-400">
               Carregando sabores...
@@ -333,18 +350,21 @@ export default function Pedido() {
               >
                 <div className="mb-4 flex items-end justify-between">
                   <div>
-                    <span className="text-xs font-semibold text-orange-500">
-                      {categoryItems.some((item) => item.destaque)
-                        ? "Os favoritos da casa"
-                        : "Para todos os momentos"}
+                    <span
+                      style={{ fontFamily: '"Fraunces", serif' }}
+                      className="text-xl font-bold text-[#295727]"
+                    >
+                      Mais Pedidos
                     </span>
-                    <h2 className="text-lg font-bold text-gray-900 md:text-xl">
-                      {category}
-                    </h2>
                   </div>
-                  <button className="flex items-center gap-0.5 text-xs font-semibold text-gray-400 hover:text-orange-500">
-                    Ver todos
-                    <ChevronRight size={14} />
+                  <button
+                    onClick={() => {
+                      navigate("/pedido/cardapio");
+                    }}
+                    className="inline-flex items-center justify-center cursor-pointer gap-1 font-bold text-[#ac1917]"
+                  >
+                    <span className="leading-none">Ver todos</span>
+                    <ArrowRight size={18} className="relative top-[1px]" />
                   </button>
                 </div>
 
@@ -352,9 +372,9 @@ export default function Pedido() {
                   {categoryItems.map((item) => (
                     <article
                       key={item.id}
-                      className="group overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.03] transition hover:shadow-md"
+                      className="group overflow-hidden rounded-2xl max-w-[200px] bg-white shadow-sm ring-1 ring-black/[0.03] transition hover:shadow-md"
                     >
-                      <div className="flex aspect-square items-center justify-center overflow-hidden bg-gray-50">
+                      <div className="flex max-h-[130px] aspect-square items-center justify-center overflow-hidden bg-gray-50">
                         {item.imagem_url ? (
                           <img
                             src={item.imagem_url}
@@ -368,30 +388,18 @@ export default function Pedido() {
                       </div>
 
                       <div className="p-3">
-                        <h3 className="truncate text-sm font-semibold text-gray-900">
+                        <h3 className="truncate text-sm font-bold text-[#295727]">
                           {item.nome_comercial}
                         </h3>
-                        {item.tamanho && (
-                          <p className="text-xs text-gray-400">
-                            {item.tamanho}
-                          </p>
-                        )}
                         <p className="mt-1 line-clamp-2 hidden text-xs text-gray-500 md:block">
                           {item.descricao ||
                             "Uma receita especial da Della Nonna."}
                         </p>
 
                         <div className="mt-2 flex items-center justify-between">
-                          <strong className="text-sm font-bold text-gray-900 md:text-base">
+                          <strong className="text-sm font-bold text-[#ac1917] md:text-base">
                             {money(item.preco_venda)}
                           </strong>
-                          <button
-                            onClick={() => addToCart(item)}
-                            aria-label={`Adicionar ${item.nome_comercial}`}
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500 text-white shadow-sm shadow-orange-200 transition hover:bg-orange-600 active:scale-95"
-                          >
-                            <Plus size={18} />
-                          </button>
                         </div>
                       </div>
                     </article>
