@@ -161,7 +161,7 @@ export default function Pedido() {
       {/* Banner */}
       <section className="relative bottom-[40px] isolate h-[26rem] w-full overflow-hidden sm:h-[30rem] lg:h-[34rem]">
         <img
-          src="/banner5.jpg"
+          src="/banner1.png"
           alt="Pizza artesanal com manjericão fresco"
           width={1408}
           height={1200}
@@ -172,11 +172,11 @@ export default function Pedido() {
 
         <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-5 sm:px-8">
           <p className="max-w-[16rem] text-[0.7rem] uppercase leading-relaxed tracking-[0.25em] text-primary-foreground/80">
-            Sabor, tradição e qualidade em todo pedido.
+            Sabor, tradição e <br/> qualidade em todo pedido.
           </p>
           <h1 className="mt-6 font-display text-4xl leading-[1.05] text-primary-foreground sm:text-5xl lg:text-6xl">
             Pizza feita
-            <span className="mt-1 block italic text-accent">com carinho.</span>
+            <span className="mt-1 font-bold block italic text-accent">com carinho.</span>
           </h1>
 
           <a
@@ -197,7 +197,7 @@ export default function Pedido() {
       {/* Cardápio intro */}
       <section
         id="cardapio"
-        className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-6 px-5 py-12 sm:px-8"
+        className="mx-auto relative bottom-[120px] flex max-w-6xl flex-wrap items-end justify-between gap-6 px-5 py-12 sm:px-8"
       >
         <div>
           <p className="flex items-center gap-3 text-[0.7rem] uppercase tracking-[0.25em] text-muted-foreground">

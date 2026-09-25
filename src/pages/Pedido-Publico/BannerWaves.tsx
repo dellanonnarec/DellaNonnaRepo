@@ -13,12 +13,9 @@ export function BannerWaves() {
       focusable="false"
     >
       {/* dark panel carrying the banner copy — wavy edge on desktop */}
-      <path
-        className="hidden fill-primary md:block"
-        d="M0,0 H600 C648,150 548,300 612,430 C652,512 536,556 470,600 H0 Z"
-      />
+      
       {/* mobile: soft scrim so the copy stays readable over the photo */}
-      <path className="fill-primary/80 md:hidden" d="M0,0 H1200 V600 H0 Z" />
+      
 
       {/* top wave */}
       <path
