@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Pedido from "./pages/Pedido-Publico/Pedido";
+
 import AdminPedidos from "./pages/Pedidos/AdminPedidosPage";
 import AdminPedidosKanban from "./pages/Pedidos/AdminPedidosKanbanPage";
 import { publicSupabase } from "./lib/supabase";
@@ -57,6 +58,7 @@ function App() {
     <Routes>
       {/* público */}
       <Route path="/pedido" element={<Pedido />} />
+      
       <Route path="/pedido/cardapio" element={<CardapioPublico />} />
 
       {/* login */}

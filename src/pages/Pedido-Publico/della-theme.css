@@ -1,0 +1,87 @@
+/*
+ * Tema da Della Nonna — Tailwind CSS v4 (CSS-first).
+ *
+ * Como usar: cole este conteúdo no seu src/index.css (ou crie este arquivo
+ * e importe-o depois do `@import "tailwindcss"` — ex.: `@import "./della-theme.css";`).
+ * Requer o plugin @tailwindcss/vite (padrão do Tailwind v4 com Vite).
+ */
+@import "tailwindcss";
+@theme {
+  /* Fontes (carregadas via <link> no index.html — ver README) */
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", ui-serif, Georgia, serif;
+  --font-logo: "Anton", "Arial Narrow", sans-serif;
+
+  /* Paleta */
+  --color-background: oklch(0.967 0.017 91.5);
+  --color-foreground: oklch(0.235 0.028 152);
+  --color-primary: oklch(0.235 0.028 152);
+  --color-primary-foreground: oklch(0.967 0.017 91.5);
+  --color-secondary: oklch(0.93 0.025 91.5);
+  --color-secondary-foreground: oklch(0.235 0.028 152);
+  --color-muted-foreground: oklch(0.52 0.02 120);
+  --color-accent: oklch(0.525 0.176 32);
+  --color-accent-foreground: oklch(0.985 0.01 91.5);
+  --color-border: oklch(0.885 0.022 91.5);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
+
+/* ── Ondas animadas do banner ────────────────────────────────────────────
+   O atributo `d` do SVG é interpolado, produzindo um morph orgânico. */
+
+@keyframes wave-top-morph {
+  0% {
+    d: path("M0,0 H1200 V70 C1000,130 820,40 600,90 C400,135 180,60 0,110 Z");
+  }
+  33% {
+    d: path("M0,0 H1200 V92 C1000,48 820,118 600,72 C400,42 180,112 0,86 Z");
+  }
+  66% {
+    d: path("M0,0 H1200 V58 C1000,112 820,62 600,104 C400,148 180,74 0,96 Z");
+  }
+  100% {
+    d: path("M0,0 H1200 V70 C1000,130 820,40 600,90 C400,135 180,60 0,110 Z");
+  }
+}
+
+@keyframes wave-bottom-morph {
+  0% {
+    d: path("M0,600 H1200 V520 C1000,470 820,560 600,515 C400,475 180,555 0,505 Z");
+  }
+  40% {
+    d: path("M0,600 H1200 V546 C1000,502 820,528 600,548 C400,512 180,524 0,538 Z");
+  }
+  70% {
+    d: path("M0,600 H1200 V508 C1000,486 820,574 600,522 C400,492 180,568 0,494 Z");
+  }
+  100% {
+    d: path("M0,600 H1200 V520 C1000,470 820,560 600,515 C400,475 180,555 0,505 Z");
+  }
+}
+
+@utility animate-wave-top {
+  animation: wave-top-morph 22s ease-in-out infinite;
+  will-change: d;
+}
+
+@utility animate-wave-bottom {
+  animation: wave-bottom-morph 31s ease-in-out infinite;
+  will-change: d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-wave-top,
+  .animate-wave-bottom {
+    animation: none;
+  }
+}
