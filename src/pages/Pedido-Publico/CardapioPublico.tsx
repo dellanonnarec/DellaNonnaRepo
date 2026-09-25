@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Plus, Search, ShoppingCart } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { publicSupabase } from "../../lib/supabase";
 import CartPage from "./CartPage";
 import FulfillmentPage from "./FulfillmentPage";
@@ -15,14 +15,24 @@ type Step = "menu" | "cart" | "fulfillment" | "address" | "customer" | "payment"
 const CART_KEY = "della-nonna-public-cart";
 const emptyAddress: DeliveryAddress = { cep: "", rua: "", numero: "", complemento: "", bairro: "", referencia: "" };
 
-function isAdditionalCategory(name: string) {
-  const normalizedName = name
+function normalizeCategoryName(name: string) {
+  return name
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLocaleLowerCase("pt-BR");
+}
 
-  return /^(?:adicion(?:al|ais)|bordas?)\b/.test(normalizedName);
+function isBorderCategory(name: string) {
+  return /^bordas?\b/.test(normalizeCategoryName(name));
+}
+
+function isExtraCategory(name: string) {
+  return /^adicion(?:al|ais)\b/.test(normalizeCategoryName(name));
+}
+
+function isAdditionalCategory(name: string) {
+  return isBorderCategory(name) || isExtraCategory(name);
 }
 
 function readCart(): CartItem[] {
@@ -41,6 +51,8 @@ function readCart(): CartItem[] {
 
 export default function CardapioPublico() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const routeState = location.state as { categoryId?: string; openCart?: boolean; selectedItemId?: string } | null;
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>(readCart);
@@ -117,7 +129,30 @@ export default function CardapioPublico() {
     try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch { /* armazenamento indisponível */ }
   }, [cart]);
 
-  const additionalItems = useMemo(() => items.filter((item) => item.origem_tipo === "insumo" && isAdditionalCategory(item.categoria)), [items]);
+  useEffect(() => {
+    if (routeState?.openCart) setStep("cart");
+
+    if (routeState?.selectedItemId) {
+      const selectedItem = items.find((item) => item.id === routeState.selectedItemId);
+      if (selectedItem) {
+        setActiveCategory(selectedItem.categoria_id);
+        setSelectedPizza(selectedItem);
+        setSelectedExtras([]);
+        setPizzaQuantity(1);
+        setPizzaObservation("");
+        navigate(location.pathname, { replace: true, state: null });
+      }
+      return;
+    }
+
+    if (!routeState?.categoryId) return;
+    const category = categories.find((entry) => entry.id === routeState.categoryId && !isAdditionalCategory(entry.nome));
+    if (category) setActiveCategory(category.id);
+  }, [location.pathname, location.state, categories, items, navigate]);
+
+  const borderItems = useMemo(() => items.filter((item) => item.origem_tipo === "insumo" && isBorderCategory(item.categoria)), [items]);
+  const extraItems = useMemo(() => items.filter((item) => item.origem_tipo === "insumo" && isExtraCategory(item.categoria)), [items]);
+  const additionalItems = useMemo(() => [...borderItems, ...extraItems], [borderItems, extraItems]);
   const visibleCategories = useMemo(() => categories.filter((category) => !isAdditionalCategory(category.nome)), [categories]);
   const filteredItems = useMemo(() => items.filter((item) => {
     if (isAdditionalCategory(item.categoria)) return false;
@@ -212,6 +247,20 @@ export default function CardapioPublico() {
     }
   };
 
+  if (routeState?.selectedItemId && !selectedPizza) {
+    const requestedItemIsLoaded = items.some((item) => item.id === routeState.selectedItemId);
+    const waitingForItem = loading || requestedItemIsLoaded;
+
+    return <main className="grid min-h-dvh place-items-center bg-[#fbf5d9] px-6 text-[#295727]">
+      <div className="flex max-w-xs flex-col items-center text-center">
+        <img src="/logo.png" alt="Della Nonna Pizzaria" className="mb-6 h-12 w-32 object-contain" />
+        {waitingForItem && <span className="mb-3 size-6 animate-spin rounded-full border-2 border-[#e5ddbd] border-t-[#b51e24]" aria-hidden="true" />}
+        <p className="text-sm font-medium">{waitingForItem ? "Carregando personalização…" : "Este item não está disponível no momento."}</p>
+        {!waitingForItem && <button onClick={() => navigate("/pedido/cardapio", { replace: true, state: null })} className="mt-4 rounded-full bg-[#b51e24] px-4 py-2 text-sm font-semibold text-white">Voltar ao cardápio</button>}
+      </div>
+    </main>;
+  }
+
   if (step === "cart") return <CartPage items={cart} onBack={() => setStep("menu")} onContinue={() => setStep("fulfillment")} onChangeQuantity={changeQuantity} onRemove={(key) => setCart((current) => current.filter((item) => item.cartKey !== key))}/>;
   if (step === "fulfillment") return <FulfillmentPage value={fulfillment} onBack={() => setStep("cart")} onChoose={setFulfillment} onContinue={() => setStep(fulfillment === "delivery" ? "address" : "customer")}/>;
   if (step === "address") return <AddressPage value={address} onChange={setAddress} onBack={() => setStep("fulfillment")} onContinue={() => setStep("customer")}/>;
@@ -221,10 +270,43 @@ export default function CardapioPublico() {
   if (step === "confirmed") return <OrderConfirmedPage orderNumber={confirmedOrderNumber} total={confirmedTotal} onHome={() => navigate("/pedido")}/>;
 
   if (selectedPizza) {
+    const isPizza = selectedPizza.origem_tipo === "receita" && /pizza/i.test(selectedPizza.categoria);
     const selectedExtrasTotal = additionalItems
       .filter((item) => selectedExtras.includes(item.id))
       .reduce((sum, item) => sum + item.preco_venda, 0);
     const customizedUnitPrice = selectedPizza.preco_venda + selectedExtrasTotal;
+    const renderAddonGroup = (title: string, groupItems: MenuItem[], emptyMessage: string) => (
+      <section className="mt-4 rounded-2xl border border-[#e5ddbd] bg-[#fffbea] p-4 shadow-sm">
+        <div className="mb-2">
+          <h2 className="font-serif text-lg font-bold text-[#155b3b]">{title}</h2>
+          <p className="text-xs text-[#829078]">Escolha se deseja incluir {title.toLocaleLowerCase("pt-BR")} na pizza</p>
+        </div>
+        {groupItems.length === 0 ? (
+          <p className="rounded-lg bg-[#f7f1dc] p-3 text-sm text-[#71826a]">{emptyMessage}</p>
+        ) : (
+          <div className="divide-y divide-[#eee8d4]">
+            {groupItems.map((item) => {
+              const checked = selectedExtras.includes(item.id);
+              return (
+                <label key={item.id} className="flex min-h-12 cursor-pointer items-center gap-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) => setSelectedExtras((current) => event.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id))}
+                    className="size-5 accent-[#b51e24]"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <strong className="block text-sm font-semibold text-[#315c40]">{item.nome_comercial}</strong>
+                    {item.descricao && <small className="text-xs text-[#829078]">{item.descricao}</small>}
+                  </span>
+                  <span className="whitespace-nowrap text-sm text-[#71826a]">+ {money(item.preco_venda)}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    );
 
     return <main className="min-h-dvh bg-[#fbf5d9] pb-32 text-[#295727]">
       <header className="sticky top-0 z-20 border-b border-[#e9e2c9] bg-[#fbf5d9]/95 px-4 py-3 backdrop-blur">
@@ -241,17 +323,8 @@ export default function CardapioPublico() {
           <div className="p-4"><div className="flex items-start justify-between gap-3"><div><h2 className="font-serif text-xl font-bold text-[#155b3b]">{selectedPizza.nome_comercial}</h2>{selectedPizza.descricao && <p className="mt-1 text-xs leading-relaxed text-[#71826a]">{selectedPizza.descricao}</p>}</div><strong className="shrink-0 text-base text-[#b52327]">{money(selectedPizza.preco_venda)}</strong></div></div>
         </section>
 
-        <section className="mt-4 rounded-2xl border border-[#e5ddbd] bg-[#fffbea] p-4 shadow-sm">
-          <div className="mb-2"><h2 className="font-serif text-lg font-bold text-[#155b3b]">Adicionais</h2><p className="text-xs text-[#829078]">Escolha os extras para sua pizza</p></div>
-          {additionalItems.length === 0 ? <p className="rounded-lg bg-[#f7f1dc] p-3 text-sm text-[#71826a]">Nenhum adicional disponível no momento.</p> : <div className="divide-y divide-[#eee8d4]">{additionalItems.map((extra) => {
-            const checked = selectedExtras.includes(extra.id);
-            return <label key={extra.id} className="flex min-h-12 cursor-pointer items-center gap-3 py-2.5">
-              <input type="checkbox" checked={checked} onChange={(event) => setSelectedExtras((current) => event.target.checked ? [...current, extra.id] : current.filter((id) => id !== extra.id))} className="size-5 accent-[#b51e24]"/>
-              <span className="min-w-0 flex-1"><strong className="block text-sm font-semibold text-[#315c40]">{extra.nome_comercial}</strong>{extra.descricao && <small className="text-xs text-[#829078]">{extra.descricao}</small>}</span>
-              <span className="whitespace-nowrap text-sm text-[#71826a]">+ {money(extra.preco_venda)}</span>
-            </label>;
-          })}</div>}
-        </section>
+        {isPizza && renderAddonGroup("Bordas", borderItems, "Nenhuma borda disponível no momento.")}
+        {isPizza && renderAddonGroup("Adicionais", extraItems, "Nenhum adicional disponível no momento.")}
 
         <label className="mt-4 block rounded-2xl border border-[#e5ddbd] bg-[#fffbea] p-4 text-sm font-semibold text-[#315c40] shadow-sm">Observações <span className="font-normal text-[#829078]">(opcional)</span><textarea value={pizzaObservation} onChange={(event) => setPizzaObservation(event.target.value)} rows={3} maxLength={300} placeholder="Ex.: sem cebola, cortar em 8 pedaços" className="mt-2 w-full resize-y rounded-lg border border-[#e4dfc9] bg-[#fffdf2] p-3 text-sm font-normal outline-none focus:border-[#78936b]"/></label>
       </div>
