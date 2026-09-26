@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Plus, Search, ShoppingCart } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Flame,
+  Menu,
+  Plus,
+  Search,
+  ShoppingCart,
+} from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { publicSupabase } from "../../lib/supabase";
 import CartPage from "./CartPage";
@@ -9,11 +18,36 @@ import CustomerPage from "./CustomerPage";
 import PaymentPage from "./PaymentPage";
 import ReviewPage from "./ReviewPage";
 import OrderConfirmedPage from "./OrderConfirmedPage";
-import { type CartItem, type Customer, type DeliveryAddress, type MenuCategory, type MenuItem, type PaymentMethod, cartSubtotal, money } from "./types";
+import {
+  type CartItem,
+  type Customer,
+  type DeliveryAddress,
+  type MenuCategory,
+  type MenuItem,
+  type PaymentMethod,
+  cartSubtotal,
+  money,
+} from "./types";
+import { BannerWaves } from "./BannerWaves";
 
-type Step = "menu" | "cart" | "fulfillment" | "address" | "customer" | "payment" | "review" | "confirmed";
+type Step =
+  | "menu"
+  | "cart"
+  | "fulfillment"
+  | "address"
+  | "customer"
+  | "payment"
+  | "review"
+  | "confirmed";
 const CART_KEY = "della-nonna-public-cart";
-const emptyAddress: DeliveryAddress = { cep: "", rua: "", numero: "", complemento: "", bairro: "", referencia: "" };
+const emptyAddress: DeliveryAddress = {
+  cep: "",
+  rua: "",
+  numero: "",
+  complemento: "",
+  bairro: "",
+  referencia: "",
+};
 
 function normalizeCategoryName(name: string) {
   return name
@@ -41,18 +75,26 @@ function readCart(): CartItem[] {
     const value = localStorage.getItem(CART_KEY);
     if (!value) return [];
     const parsed = JSON.parse(value) as Partial<CartItem>[];
-    return parsed.map((item) => ({
-      ...item,
-      additions: Array.isArray(item.additions) ? item.additions : [],
-    } as CartItem));
+    return parsed.map(
+      (item) =>
+        ({
+          ...item,
+          additions: Array.isArray(item.additions) ? item.additions : [],
+        }) as CartItem,
+    );
+  } catch {
+    return [];
   }
-  catch { return []; }
 }
 
 export default function CardapioPublico() {
   const navigate = useNavigate();
   const location = useLocation();
-  const routeState = location.state as { categoryId?: string; openCart?: boolean; selectedItemId?: string } | null;
+  const routeState = location.state as {
+    categoryId?: string;
+    openCart?: boolean;
+    selectedItemId?: string;
+  } | null;
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>(readCart);
@@ -61,12 +103,19 @@ export default function CardapioPublico() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [fulfillment, setFulfillment] = useState<"delivery" | "retirada" | "">("");
+  const [fulfillment, setFulfillment] = useState<"delivery" | "retirada" | "">(
+    "",
+  );
   const [address, setAddress] = useState<DeliveryAddress>(emptyAddress);
-  const [customer, setCustomer] = useState<Customer>({ name: "", whatsapp: "" });
+  const [customer, setCustomer] = useState<Customer>({
+    name: "",
+    whatsapp: "",
+  });
   const [payment, setPayment] = useState<PaymentMethod | "">("");
   const [busy, setBusy] = useState(false);
-  const [confirmedOrderNumber, setConfirmedOrderNumber] = useState<number | null>(null);
+  const [confirmedOrderNumber, setConfirmedOrderNumber] = useState<
+    number | null
+  >(null);
   const [confirmedTotal, setConfirmedTotal] = useState(0);
   const [selectedPizza, setSelectedPizza] = useState<MenuItem | null>(null);
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
@@ -85,55 +134,84 @@ export default function CardapioPublico() {
       }
       const supabase = publicSupabase;
       const [categoryResult, itemResult] = await Promise.all([
-        supabase.from("categorias_cardapio").select("id,nome,ordem,ativa").eq("ativa", true).order("ordem"),
-        supabase.from("cardapio_itens").select("id,nome_comercial,descricao,categoria_id,tamanho,imagem_url,preco_venda,destaque,disponivel,ordem_exibicao,origem_tipo,receita_id,insumo_id").eq("disponivel", true).order("ordem_exibicao"),
+        supabase
+          .from("categorias_cardapio")
+          .select("id,nome,ordem,ativa")
+          .eq("ativa", true)
+          .order("ordem"),
+        supabase
+          .from("cardapio_itens")
+          .select(
+            "id,nome_comercial,descricao,categoria_id,tamanho,imagem_url,preco_venda,destaque,disponivel,ordem_exibicao,origem_tipo,receita_id,insumo_id",
+          )
+          .eq("disponivel", true)
+          .order("ordem_exibicao"),
       ]);
       if (!active) return;
       if (categoryResult.error || itemResult.error) {
-        console.error("Falha ao carregar o cardápio público:", categoryResult.error ?? itemResult.error);
-        setError("Não foi possível carregar o cardápio. Tente novamente em instantes.");
+        console.error(
+          "Falha ao carregar o cardápio público:",
+          categoryResult.error ?? itemResult.error,
+        );
+        setError(
+          "Não foi possível carregar o cardápio. Tente novamente em instantes.",
+        );
         setLoading(false);
         return;
       }
       const categoryRows = (categoryResult.data ?? []) as MenuCategory[];
-      const categoryById = new Map(categoryRows.map((category) => [category.id, category]));
-      const loadedItems: MenuItem[] = (itemResult.data ?? []).flatMap((row: any) => {
-        const category = categoryById.get(row.categoria_id);
-        if (!category) return [];
-        return [{
-          id: row.id,
-          nome_comercial: row.nome_comercial,
-          descricao: row.descricao,
-          categoria_id: row.categoria_id,
-          categoria: category.nome,
-          tamanho: row.tamanho,
-          imagem_url: row.imagem_url,
-          preco_venda: Number(row.preco_venda ?? 0),
-          destaque: Boolean(row.destaque),
-          disponivel: Boolean(row.disponivel),
-          ordem_exibicao: Number(row.ordem_exibicao ?? 1),
-          origem_tipo: row.origem_tipo,
-          receita_id: row.receita_id ?? null,
-          insumo_id: row.insumo_id ?? null,
-        }];
-      });
+      const categoryById = new Map(
+        categoryRows.map((category) => [category.id, category]),
+      );
+      const loadedItems: MenuItem[] = (itemResult.data ?? []).flatMap(
+        (row: any) => {
+          const category = categoryById.get(row.categoria_id);
+          if (!category) return [];
+          return [
+            {
+              id: row.id,
+              nome_comercial: row.nome_comercial,
+              descricao: row.descricao,
+              categoria_id: row.categoria_id,
+              categoria: category.nome,
+              tamanho: row.tamanho,
+              imagem_url: row.imagem_url,
+              preco_venda: Number(row.preco_venda ?? 0),
+              destaque: Boolean(row.destaque),
+              disponivel: Boolean(row.disponivel),
+              ordem_exibicao: Number(row.ordem_exibicao ?? 1),
+              origem_tipo: row.origem_tipo,
+              receita_id: row.receita_id ?? null,
+              insumo_id: row.insumo_id ?? null,
+            },
+          ];
+        },
+      );
       setCategories(categoryRows);
       setItems(loadedItems);
       setLoading(false);
     };
     void load();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch { /* armazenamento indisponível */ }
+    try {
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    } catch {
+      /* armazenamento indisponível */
+    }
   }, [cart]);
 
   useEffect(() => {
     if (routeState?.openCart) setStep("cart");
 
     if (routeState?.selectedItemId) {
-      const selectedItem = items.find((item) => item.id === routeState.selectedItemId);
+      const selectedItem = items.find(
+        (item) => item.id === routeState.selectedItemId,
+      );
       if (selectedItem) {
         setActiveCategory(selectedItem.categoria_id);
         setSelectedPizza(selectedItem);
@@ -146,31 +224,79 @@ export default function CardapioPublico() {
     }
 
     if (!routeState?.categoryId) return;
-    const category = categories.find((entry) => entry.id === routeState.categoryId && !isAdditionalCategory(entry.nome));
+    const category = categories.find(
+      (entry) =>
+        entry.id === routeState.categoryId && !isAdditionalCategory(entry.nome),
+    );
     if (category) setActiveCategory(category.id);
   }, [location.pathname, location.state, categories, items, navigate]);
 
-  const borderItems = useMemo(() => items.filter((item) => item.origem_tipo === "insumo" && isBorderCategory(item.categoria)), [items]);
-  const extraItems = useMemo(() => items.filter((item) => item.origem_tipo === "insumo" && isExtraCategory(item.categoria)), [items]);
-  const additionalItems = useMemo(() => [...borderItems, ...extraItems], [borderItems, extraItems]);
-  const visibleCategories = useMemo(() => categories.filter((category) => !isAdditionalCategory(category.nome)), [categories]);
-  const filteredItems = useMemo(() => items.filter((item) => {
-    if (isAdditionalCategory(item.categoria)) return false;
-    const matchesCategory = activeCategory === "Todas" || item.categoria_id === activeCategory;
-    const term = search.trim().toLocaleLowerCase("pt-BR");
-    const matchesSearch = !term || `${item.nome_comercial} ${item.descricao ?? ""} ${item.categoria}`.toLocaleLowerCase("pt-BR").includes(term);
-    return matchesCategory && matchesSearch;
-  }), [items, activeCategory, search]);
+  const borderItems = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          item.origem_tipo === "insumo" && isBorderCategory(item.categoria),
+      ),
+    [items],
+  );
+  const extraItems = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          item.origem_tipo === "insumo" && isExtraCategory(item.categoria),
+      ),
+    [items],
+  );
+  const additionalItems = useMemo(
+    () => [...borderItems, ...extraItems],
+    [borderItems, extraItems],
+  );
+  const visibleCategories = useMemo(
+    () => categories.filter((category) => !isAdditionalCategory(category.nome)),
+    [categories],
+  );
+  const filteredItems = useMemo(
+    () =>
+      items.filter((item) => {
+        if (isAdditionalCategory(item.categoria)) return false;
+        const matchesCategory =
+          activeCategory === "Todas" || item.categoria_id === activeCategory;
+        const term = search.trim().toLocaleLowerCase("pt-BR");
+        const matchesSearch =
+          !term ||
+          `${item.nome_comercial} ${item.descricao ?? ""} ${item.categoria}`
+            .toLocaleLowerCase("pt-BR")
+            .includes(term);
+        return matchesCategory && matchesSearch;
+      }),
+    [items, activeCategory, search],
+  );
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cartSubtotal(cart);
   const deliveryFee = 0; // Configure aqui quando houver uma taxa/área de entrega no banco.
 
-  const addToCart = (menuItem: MenuItem, quantity = 1, observation = "", additions: CartItem["additions"] = []) => {
-    setCart((current) => [...current, {
-      cartKey: crypto.randomUUID(), menuItemId: menuItem.id, name: menuItem.nome_comercial,
-      category: menuItem.categoria, size: menuItem.tamanho, imageUrl: menuItem.imagem_url,
-      unitPrice: menuItem.preco_venda, quantity, observation, originType: menuItem.origem_tipo, additions,
-    }]);
+  const addToCart = (
+    menuItem: MenuItem,
+    quantity = 1,
+    observation = "",
+    additions: CartItem["additions"] = [],
+  ) => {
+    setCart((current) => [
+      ...current,
+      {
+        cartKey: crypto.randomUUID(),
+        menuItemId: menuItem.id,
+        name: menuItem.nome_comercial,
+        category: menuItem.categoria,
+        size: menuItem.tamanho,
+        imageUrl: menuItem.imagem_url,
+        unitPrice: menuItem.preco_venda,
+        quantity,
+        observation,
+        originType: menuItem.origem_tipo,
+        additions,
+      },
+    ]);
   };
   const startAdd = (item: MenuItem) => {
     setError("");
@@ -183,19 +309,34 @@ export default function CardapioPublico() {
   };
   const confirmPizzaAndExtras = () => {
     if (!selectedPizza) return;
-    const additions = additionalItems.filter((item) => selectedExtras.includes(item.id)).map((item) => ({
-      menuItemId: item.id,
-      name: item.nome_comercial,
-      quantityPerItem: 1,
-      unitPrice: item.preco_venda,
-    }));
+    const additions = additionalItems
+      .filter((item) => selectedExtras.includes(item.id))
+      .map((item) => ({
+        menuItemId: item.id,
+        name: item.nome_comercial,
+        quantityPerItem: 1,
+        unitPrice: item.preco_venda,
+      }));
     addToCart(selectedPizza, pizzaQuantity, pizzaObservation.trim(), additions);
     setSelectedPizza(null);
   };
-  const changeQuantity = (cartKey: string, quantity: number) => setCart((current) => quantity < 1 ? current.filter((item) => item.cartKey !== cartKey) : current.map((item) => item.cartKey === cartKey ? { ...item, quantity } : item));
+  const changeQuantity = (cartKey: string, quantity: number) =>
+    setCart((current) =>
+      quantity < 1
+        ? current.filter((item) => item.cartKey !== cartKey)
+        : current.map((item) =>
+            item.cartKey === cartKey ? { ...item, quantity } : item,
+          ),
+    );
 
   const submitOrder = async () => {
-    if (!fulfillment || !payment || !cart.length || customer.name.trim().length < 2) return;
+    if (
+      !fulfillment ||
+      !payment ||
+      !cart.length ||
+      customer.name.trim().length < 2
+    )
+      return;
     if (!publicSupabase) {
       setError("O serviço de pedidos não está configurado.");
       return;
@@ -211,9 +352,11 @@ export default function CardapioPublico() {
       cep: fulfillment === "delivery" ? address.cep.trim() : null,
       rua: fulfillment === "delivery" ? address.rua.trim() : null,
       numero: fulfillment === "delivery" ? address.numero.trim() : null,
-      complemento: fulfillment === "delivery" ? address.complemento.trim() || null : null,
+      complemento:
+        fulfillment === "delivery" ? address.complemento.trim() || null : null,
       bairro: fulfillment === "delivery" ? address.bairro.trim() : null,
-      referencia: fulfillment === "delivery" ? address.referencia.trim() || null : null,
+      referencia:
+        fulfillment === "delivery" ? address.referencia.trim() || null : null,
       forma_pagamento: payment,
       subtotal,
       taxa_entrega: fee,
@@ -221,85 +364,216 @@ export default function CardapioPublico() {
       observacao: null,
     };
     try {
-      const { data, error: orderError } = await supabase.rpc("registrar_pedido_publico", {
-        p_pedido: orderPayload,
-        p_itens: cart.map((item) => ({
-          cardapio_item_id: item.menuItemId,
-          quantidade: item.quantity,
-          observacao: item.observation || null,
-          adicionais: item.additions.map((addition) => ({
-            cardapio_item_id: addition.menuItemId,
-            quantidade: addition.quantityPerItem,
+      const { data, error: orderError } = await supabase.rpc(
+        "registrar_pedido_publico",
+        {
+          p_pedido: orderPayload,
+          p_itens: cart.map((item) => ({
+            cardapio_item_id: item.menuItemId,
+            quantidade: item.quantity,
+            observacao: item.observation || null,
+            adicionais: item.additions.map((addition) => ({
+              cardapio_item_id: addition.menuItemId,
+              quantidade: addition.quantityPerItem,
+            })),
           })),
-        })),
-      });
+        },
+      );
       if (orderError) throw orderError;
       const result = Array.isArray(data) ? data[0] : data;
-      setConfirmedOrderNumber(result?.order_number == null ? null : Number(result.order_number));
-      setConfirmedTotal(Number(result?.order_total ?? (subtotal + fee)));
+      setConfirmedOrderNumber(
+        result?.order_number == null ? null : Number(result.order_number),
+      );
+      setConfirmedTotal(Number(result?.order_total ?? subtotal + fee));
       setCart([]);
       setStep("confirmed");
     } catch (cause) {
       console.error("Falha ao finalizar pedido:", cause);
-      setError("Não foi possível enviar o pedido. Confira sua conexão e tente novamente.");
+      setError(
+        "Não foi possível enviar o pedido. Confira sua conexão e tente novamente.",
+      );
     } finally {
       setBusy(false);
     }
   };
 
   if (routeState?.selectedItemId && !selectedPizza) {
-    const requestedItemIsLoaded = items.some((item) => item.id === routeState.selectedItemId);
+    const requestedItemIsLoaded = items.some(
+      (item) => item.id === routeState.selectedItemId,
+    );
     const waitingForItem = loading || requestedItemIsLoaded;
 
-    return <main className="grid min-h-dvh place-items-center bg-[#fbf5d9] px-6 text-[#295727]">
-      <div className="flex max-w-xs flex-col items-center text-center">
-        <img src="/logo.png" alt="Della Nonna Pizzaria" className="mb-6 h-12 w-32 object-contain" />
-        {waitingForItem && <span className="mb-3 size-6 animate-spin rounded-full border-2 border-[#e5ddbd] border-t-[#b51e24]" aria-hidden="true" />}
-        <p className="text-sm font-medium">{waitingForItem ? "Carregando personalização…" : "Este item não está disponível no momento."}</p>
-        {!waitingForItem && <button onClick={() => navigate("/pedido/cardapio", { replace: true, state: null })} className="mt-4 rounded-full bg-[#b51e24] px-4 py-2 text-sm font-semibold text-white">Voltar ao cardápio</button>}
-      </div>
-    </main>;
+    return (
+      <main className="grid min-h-dvh place-items-center bg-[#fbf5d9] px-6 text-[#295727]">
+        <div className="flex max-w-xs flex-col items-center text-center">
+          <img
+            src="/logo.png"
+            alt="Della Nonna Pizzaria"
+            className="mb-6 h-12 w-32 object-contain"
+          />
+          {waitingForItem && (
+            <span
+              className="mb-3 size-6 animate-spin rounded-full border-2 border-[#e5ddbd] border-t-[#b51e24]"
+              aria-hidden="true"
+            />
+          )}
+          <p className="text-sm font-medium">
+            {waitingForItem
+              ? "Carregando personalização…"
+              : "Este item não está disponível no momento."}
+          </p>
+          {!waitingForItem && (
+            <button
+              onClick={() =>
+                navigate("/pedido/cardapio", { replace: true, state: null })
+              }
+              className="mt-4 rounded-full bg-[#b51e24] px-4 py-2 text-sm font-semibold text-white"
+            >
+              Voltar ao cardápio
+            </button>
+          )}
+        </div>
+      </main>
+    );
   }
 
-  if (step === "cart") return <CartPage items={cart} onBack={() => setStep("menu")} onContinue={() => setStep("fulfillment")} onChangeQuantity={changeQuantity} onRemove={(key) => setCart((current) => current.filter((item) => item.cartKey !== key))}/>;
-  if (step === "fulfillment") return <FulfillmentPage value={fulfillment} onBack={() => setStep("cart")} onChoose={setFulfillment} onContinue={() => setStep(fulfillment === "delivery" ? "address" : "customer")}/>;
-  if (step === "address") return <AddressPage value={address} onChange={setAddress} onBack={() => setStep("fulfillment")} onContinue={() => setStep("customer")}/>;
-  if (step === "customer") return <CustomerPage value={customer} onChange={setCustomer} onBack={() => setStep(fulfillment === "delivery" ? "address" : "fulfillment")} onContinue={() => setStep("payment")}/>;
-  if (step === "payment") return <PaymentPage value={payment} onChange={setPayment} onBack={() => setStep("customer")} onContinue={() => setStep("review")}/>;
-  if (step === "review") return <ReviewPage items={cart} fulfillment={fulfillment as "delivery" | "retirada"} address={address} customer={customer} payment={payment as PaymentMethod} deliveryFee={deliveryFee} busy={busy} error={error} onBack={() => setStep("payment")} onConfirm={() => void submitOrder()}/>;
-  if (step === "confirmed") return <OrderConfirmedPage orderNumber={confirmedOrderNumber} total={confirmedTotal} onHome={() => navigate("/pedido")}/>;
+  if (step === "cart")
+    return (
+      <CartPage
+        items={cart}
+        onBack={() => setStep("menu")}
+        onContinue={() => setStep("fulfillment")}
+        onChangeQuantity={changeQuantity}
+        onRemove={(key) =>
+          setCart((current) => current.filter((item) => item.cartKey !== key))
+        }
+      />
+    );
+  if (step === "fulfillment")
+    return (
+      <FulfillmentPage
+        value={fulfillment}
+        onBack={() => setStep("cart")}
+        onChoose={setFulfillment}
+        onContinue={() =>
+          setStep(fulfillment === "delivery" ? "address" : "customer")
+        }
+      />
+    );
+  if (step === "address")
+    return (
+      <AddressPage
+        value={address}
+        onChange={setAddress}
+        onBack={() => setStep("fulfillment")}
+        onContinue={() => setStep("customer")}
+      />
+    );
+  if (step === "customer")
+    return (
+      <CustomerPage
+        value={customer}
+        onChange={setCustomer}
+        onBack={() =>
+          setStep(fulfillment === "delivery" ? "address" : "fulfillment")
+        }
+        onContinue={() => setStep("payment")}
+      />
+    );
+  if (step === "payment")
+    return (
+      <PaymentPage
+        value={payment}
+        onChange={setPayment}
+        onBack={() => setStep("customer")}
+        onContinue={() => setStep("review")}
+      />
+    );
+  if (step === "review")
+    return (
+      <ReviewPage
+        items={cart}
+        fulfillment={fulfillment as "delivery" | "retirada"}
+        address={address}
+        customer={customer}
+        payment={payment as PaymentMethod}
+        deliveryFee={deliveryFee}
+        busy={busy}
+        error={error}
+        onBack={() => setStep("payment")}
+        onConfirm={() => void submitOrder()}
+      />
+    );
+  if (step === "confirmed")
+    return (
+      <OrderConfirmedPage
+        orderNumber={confirmedOrderNumber}
+        total={confirmedTotal}
+        onHome={() => navigate("/pedido")}
+      />
+    );
 
   if (selectedPizza) {
-    const isPizza = selectedPizza.origem_tipo === "receita" && /pizza/i.test(selectedPizza.categoria);
+    const isPizza =
+      selectedPizza.origem_tipo === "receita" &&
+      /pizza/i.test(selectedPizza.categoria);
     const selectedExtrasTotal = additionalItems
       .filter((item) => selectedExtras.includes(item.id))
       .reduce((sum, item) => sum + item.preco_venda, 0);
     const customizedUnitPrice = selectedPizza.preco_venda + selectedExtrasTotal;
-    const renderAddonGroup = (title: string, groupItems: MenuItem[], emptyMessage: string) => (
+    const renderAddonGroup = (
+      title: string,
+      groupItems: MenuItem[],
+      emptyMessage: string,
+    ) => (
       <section className="mt-4 rounded-2xl border border-[#e5ddbd] bg-[#fffbea] p-4 shadow-sm">
         <div className="mb-2">
-          <h2 className="font-serif text-lg font-bold text-[#155b3b]">{title}</h2>
-          <p className="text-xs text-[#829078]">Escolha se deseja incluir {title.toLocaleLowerCase("pt-BR")} na pizza</p>
+          <h2 className="font-serif text-lg font-bold text-[#155b3b]">
+            {title}
+          </h2>
+          <p className="text-xs text-[#829078]">
+            Escolha se deseja incluir {title.toLocaleLowerCase("pt-BR")} na
+            pizza
+          </p>
         </div>
         {groupItems.length === 0 ? (
-          <p className="rounded-lg bg-[#f7f1dc] p-3 text-sm text-[#71826a]">{emptyMessage}</p>
+          <p className="rounded-lg bg-[#f7f1dc] p-3 text-sm text-[#71826a]">
+            {emptyMessage}
+          </p>
         ) : (
           <div className="divide-y divide-[#eee8d4]">
             {groupItems.map((item) => {
               const checked = selectedExtras.includes(item.id);
               return (
-                <label key={item.id} className="flex min-h-12 cursor-pointer items-center gap-3 py-2.5">
+                <label
+                  key={item.id}
+                  className="flex min-h-12 cursor-pointer items-center gap-3 py-2.5"
+                >
                   <input
                     type="checkbox"
                     checked={checked}
-                    onChange={(event) => setSelectedExtras((current) => event.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id))}
+                    onChange={(event) =>
+                      setSelectedExtras((current) =>
+                        event.target.checked
+                          ? [...current, item.id]
+                          : current.filter((id) => id !== item.id),
+                      )
+                    }
                     className="size-5 accent-[#b51e24]"
                   />
                   <span className="min-w-0 flex-1">
-                    <strong className="block text-sm font-semibold text-[#315c40]">{item.nome_comercial}</strong>
-                    {item.descricao && <small className="text-xs text-[#829078]">{item.descricao}</small>}
+                    <strong className="block text-sm font-semibold text-[#315c40]">
+                      {item.nome_comercial}
+                    </strong>
+                    {item.descricao && (
+                      <small className="text-xs text-[#829078]">
+                        {item.descricao}
+                      </small>
+                    )}
                   </span>
-                  <span className="whitespace-nowrap text-sm text-[#71826a]">+ {money(item.preco_venda)}</span>
+                  <span className="whitespace-nowrap text-sm text-[#71826a]">
+                    + {money(item.preco_venda)}
+                  </span>
                 </label>
               );
             })}
@@ -308,47 +582,333 @@ export default function CardapioPublico() {
       </section>
     );
 
-    return <main className="min-h-dvh bg-[#fbf5d9] pb-32 text-[#295727]">
-      <header className="sticky top-0 z-20 border-b border-[#e9e2c9] bg-[#fbf5d9]/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-xl items-center gap-3">
-          <button type="button" onClick={() => setSelectedPizza(null)} aria-label="Voltar ao cardápio" className="grid size-10 shrink-0 place-items-center rounded-full text-[#315c40] hover:bg-[#f0ead3]"><ArrowLeft size={19}/></button>
-          <div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#849078]">Personalizar pedido</p><h1 className="truncate font-serif text-lg font-bold text-[#155b3b]">{selectedPizza.nome_comercial}</h1></div>
-          <button type="button" onClick={() => { setSelectedPizza(null); setStep("cart"); }} aria-label={`Carrinho, ${cartCount} itens`} className="relative grid size-10 shrink-0 place-items-center rounded-full bg-[#fffbea] text-[#295727] shadow-sm"><ShoppingCart size={19}/>{cartCount > 0 && <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#b51e24] text-[10px] font-bold text-white">{cartCount}</span>}</button>
+    return (
+      <main className="min-h-dvh bg-[#fbf5d9] pb-32 text-[#295727]">
+        <header className="sticky top-0 z-20 border-b border-[#e9e2c9] bg-[#fbf5d9]/95 px-4 py-3 backdrop-blur">
+          <div className="mx-auto flex max-w-xl items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSelectedPizza(null)}
+              aria-label="Voltar ao cardápio"
+              className="grid size-10 shrink-0 place-items-center rounded-full text-[#315c40] hover:bg-[#f0ead3]"
+            >
+              <ArrowLeft size={19} />
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#849078]">
+                Personalizar pedido
+              </p>
+              <h1 className="truncate font-serif text-lg font-bold text-[#155b3b]">
+                {selectedPizza.nome_comercial}
+              </h1>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPizza(null);
+                setStep("cart");
+              }}
+              aria-label={`Carrinho, ${cartCount} itens`}
+              className="relative grid size-10 shrink-0 place-items-center rounded-full bg-[#fffbea] text-[#295727] shadow-sm"
+            >
+              <ShoppingCart size={19} />
+              {cartCount > 0 && (
+                <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#b51e24] text-[10px] font-bold text-white">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-xl px-4 py-4">
+          <section className="overflow-hidden rounded-2xl border border-[#e5ddbd] bg-[#fffbea] shadow-sm">
+            <div className="aspect-[2.1/1] overflow-hidden bg-[#f3eedb]">
+              {selectedPizza.imagem_url ? (
+                <img
+                  src={selectedPizza.imagem_url}
+                  alt={selectedPizza.nome_comercial}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="grid h-full place-items-center text-6xl">
+                  🍕
+                </div>
+              )}
+            </div>
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-serif text-xl font-bold text-[#155b3b]">
+                    {selectedPizza.nome_comercial}
+                  </h2>
+                  {selectedPizza.descricao && (
+                    <p className="mt-1 text-xs leading-relaxed text-[#71826a]">
+                      {selectedPizza.descricao}
+                    </p>
+                  )}
+                </div>
+                <strong className="shrink-0 text-base text-[#b52327]">
+                  {money(selectedPizza.preco_venda)}
+                </strong>
+              </div>
+            </div>
+          </section>
+
+          {isPizza &&
+            renderAddonGroup(
+              "Bordas",
+              borderItems,
+              "Nenhuma borda disponível no momento.",
+            )}
+          {isPizza &&
+            renderAddonGroup(
+              "Adicionais",
+              extraItems,
+              "Nenhum adicional disponível no momento.",
+            )}
+
+          <label className="mt-4 block rounded-2xl border border-[#e5ddbd] bg-[#fffbea] p-4 text-sm font-semibold text-[#315c40] shadow-sm">
+            Observações{" "}
+            <span className="font-normal text-[#829078]">(opcional)</span>
+            <textarea
+              value={pizzaObservation}
+              onChange={(event) => setPizzaObservation(event.target.value)}
+              rows={3}
+              maxLength={300}
+              placeholder="Ex.: sem cebola, cortar em 8 pedaços"
+              className="mt-2 w-full resize-y rounded-lg border border-[#e4dfc9] bg-[#fffdf2] p-3 text-sm font-normal outline-none focus:border-[#78936b]"
+            />
+          </label>
         </div>
-      </header>
 
-      <div className="mx-auto max-w-xl px-4 py-4">
-        <section className="overflow-hidden rounded-2xl border border-[#e5ddbd] bg-[#fffbea] shadow-sm">
-          <div className="aspect-[2.1/1] overflow-hidden bg-[#f3eedb]">{selectedPizza.imagem_url ? <img src={selectedPizza.imagem_url} alt={selectedPizza.nome_comercial} className="h-full w-full object-cover"/> : <div className="grid h-full place-items-center text-6xl">🍕</div>}</div>
-          <div className="p-4"><div className="flex items-start justify-between gap-3"><div><h2 className="font-serif text-xl font-bold text-[#155b3b]">{selectedPizza.nome_comercial}</h2>{selectedPizza.descricao && <p className="mt-1 text-xs leading-relaxed text-[#71826a]">{selectedPizza.descricao}</p>}</div><strong className="shrink-0 text-base text-[#b52327]">{money(selectedPizza.preco_venda)}</strong></div></div>
-        </section>
-
-        {isPizza && renderAddonGroup("Bordas", borderItems, "Nenhuma borda disponível no momento.")}
-        {isPizza && renderAddonGroup("Adicionais", extraItems, "Nenhum adicional disponível no momento.")}
-
-        <label className="mt-4 block rounded-2xl border border-[#e5ddbd] bg-[#fffbea] p-4 text-sm font-semibold text-[#315c40] shadow-sm">Observações <span className="font-normal text-[#829078]">(opcional)</span><textarea value={pizzaObservation} onChange={(event) => setPizzaObservation(event.target.value)} rows={3} maxLength={300} placeholder="Ex.: sem cebola, cortar em 8 pedaços" className="mt-2 w-full resize-y rounded-lg border border-[#e4dfc9] bg-[#fffdf2] p-3 text-sm font-normal outline-none focus:border-[#78936b]"/></label>
-      </div>
-
-      <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-[#e5ddbd] bg-[#fffbea]/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(49,92,64,0.08)] backdrop-blur">
-        <div className="mx-auto flex max-w-xl items-center gap-3">
-          <div className="inline-flex h-11 shrink-0 items-center rounded-full border border-[#e5ddbd] bg-[#fffdf2]"><button type="button" onClick={() => setPizzaQuantity((value) => Math.max(1, value - 1))} aria-label="Diminuir quantidade" className="grid size-10 place-items-center text-lg">−</button><span className="w-5 text-center text-sm font-semibold">{pizzaQuantity}</span><button type="button" onClick={() => setPizzaQuantity((value) => value + 1)} aria-label="Aumentar quantidade" className="grid size-10 place-items-center text-lg">+</button></div>
-          <button type="button" onClick={confirmPizzaAndExtras} className="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-[#b51e24] px-4 text-sm font-bold text-white shadow-sm"><Plus size={17}/><span className="truncate">Adicionar ao carrinho · {money(customizedUnitPrice * pizzaQuantity)}</span></button>
-        </div>
-      </footer>
-    </main>;
+        <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-[#e5ddbd] bg-[#fffbea]/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(49,92,64,0.08)] backdrop-blur">
+          <div className="mx-auto flex max-w-xl items-center gap-3">
+            <div className="inline-flex h-11 shrink-0 items-center rounded-full border border-[#e5ddbd] bg-[#fffdf2]">
+              <button
+                type="button"
+                onClick={() =>
+                  setPizzaQuantity((value) => Math.max(1, value - 1))
+                }
+                aria-label="Diminuir quantidade"
+                className="grid size-10 place-items-center text-lg"
+              >
+                −
+              </button>
+              <span className="w-5 text-center text-sm font-semibold">
+                {pizzaQuantity}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPizzaQuantity((value) => value + 1)}
+                aria-label="Aumentar quantidade"
+                className="grid size-10 place-items-center text-lg"
+              >
+                +
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={confirmPizzaAndExtras}
+              className="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-[#b51e24] px-4 text-sm font-bold text-white shadow-sm"
+            >
+              <Plus size={17} />
+              <span className="truncate">
+                Adicionar ao carrinho ·{" "}
+                {money(customizedUnitPrice * pizzaQuantity)}
+              </span>
+            </button>
+          </div>
+        </footer>
+      </main>
+    );
   }
 
-  return <main className="min-h-screen bg-[#fbf5d9] pb-24 text-[#295727]">
-    <header className="sticky top-0 z-30 border-b border-[#e9e2c9] bg-[#fbf5d9]/95 px-4 py-3 backdrop-blur sm:px-8">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3"><button onClick={() => navigate("/pedido")} aria-label="Voltar ao início" className="grid size-10 place-items-center rounded-full text-[#54715b] hover:bg-[#f0ead3]"><ArrowLeft size={19}/></button><img src="/logo.png" alt="Della Nonna Pizzaria" className="h-12 max-w-[170px] object-contain"/><button onClick={() => setStep("cart")} className="relative inline-flex size-10 items-center justify-center rounded-full bg-[#fffbea] text-[#295727] shadow-sm" aria-label={`Carrinho, ${cartCount} itens`}><ShoppingCart size={20}/>{cartCount > 0 && <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#b51e24] text-[10px] font-bold text-white">{cartCount}</span>}</button></div>
-    </header>
-    <div className="mx-auto max-w-6xl px-4 sm:px-8">
-      <section className="relative mt-5 overflow-hidden rounded-2xl bg-[#ede4c5]"><img src="/bannerPizza.jpg" alt="Pizza Della Nonna" className="h-52 w-full object-cover sm:h-72"/><div className="absolute inset-0 bg-gradient-to-r from-[#fbf5d9]/90 via-[#fbf5d9]/50 to-transparent"/><div className="absolute inset-y-0 left-0 flex max-w-sm flex-col justify-center p-6 sm:p-10"><p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#b52327]">Feito com carinho</p><h1 className="mt-2 font-serif text-3xl font-bold leading-tight text-[#155b3b] sm:text-5xl">Sabor e tradição em cada pedido.</h1><p className="mt-2 text-sm text-[#426548]">Escolha seus favoritos e personalize com adicionais.</p></div></section>
-      {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-      <label className="relative mt-6 block"><Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#829078]"/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar no cardápio" className="h-11 w-full rounded-full border border-[#e5ddbd] bg-[#fffbea] pl-11 pr-4 text-sm outline-none focus:border-[#78936b]"/></label>
-      <nav aria-label="Categorias do cardápio" className="mt-4 flex gap-2 overflow-x-auto pb-2">{[{ id: "Todas", nome: "Todas" }, ...visibleCategories].map((category) => <button key={category.id} onClick={() => setActiveCategory(category.id)} className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold ${activeCategory === category.id ? "bg-[#b51e24] text-white" : "border border-[#e5ddbd] bg-[#fffbea] text-[#54715b]"}`}>{category.nome}</button>)}</nav>
-      {loading ? <p className="py-16 text-center text-sm text-[#71826a]">Carregando cardápio…</p> : filteredItems.length === 0 ? <p className="py-16 text-center text-sm text-[#71826a]">Nenhum item disponível nesta categoria.</p> : <section className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{filteredItems.map((item) => <article key={item.id} className="flex gap-3 rounded-xl border border-[#e5ddbd] bg-[#fffbea] p-3 shadow-sm"><div className="size-24 shrink-0 overflow-hidden rounded-lg bg-[#f3eedb]">{item.imagem_url ? <img src={item.imagem_url} alt={item.nome_comercial} loading="lazy" className="h-full w-full object-cover"/> : <div className="grid h-full place-items-center text-3xl">🍕</div>}</div><div className="flex min-w-0 flex-1 flex-col"><div className="flex items-start justify-between gap-2"><h2 className="min-w-0 font-serif font-bold text-[#155b3b]">{item.nome_comercial}</h2>{item.destaque && <span className="shrink-0 rounded-full bg-[#f8efd8] px-2 py-1 text-[9px] font-bold text-[#a16e1f]">Destaque</span>}</div><p className="mt-1 line-clamp-2 text-xs text-[#71826a]">{item.descricao}</p><div className="mt-auto flex items-center justify-between pt-2"><strong className="text-sm text-[#b52327]">{money(item.preco_venda)}</strong><button onClick={() => startAdd(item)} className="inline-flex h-9 items-center gap-1 rounded-full bg-[#b51e24] px-3 text-xs font-semibold text-white"><Plus size={15}/> Adicionar</button></div></div></article>)}</section>}
-    </div>
-    <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-center justify-around border-t border-[#e5ddbd] bg-[#fffbea] md:hidden"><button onClick={() => navigate("/pedido")} className="text-xs text-[#54715b]">⌂<span className="block">Início</span></button><span className="text-xs font-semibold text-[#b52327]">▤<span className="block">Cardápio</span></span><button onClick={() => setStep("cart")} className="text-xs text-[#54715b]">🛒{cartCount > 0 && ` ${cartCount}`}<span className="block">Carrinho</span></button></nav>
-  </main>;
+  return (
+    <main className="min-h-screen bg-[#F8F4E8] pb-24 text-[#295727]">
+      <header className="relative h-[90px] z-50 mx-auto flex w-full max-w-6xl items-center justify-between bg-[#F8F4E8] px-3 pt-2 sm:px-6 md:px-8">
+        <button
+          type="button"
+          onClick={() => setSelectedPizza(null)}
+          aria-label="Voltar ao cardápio"
+          className="grid size-10 shrink-0 place-items-center rounded-full text-[#315c40] transition-colors hover:bg-[#f0ead3] sm:size-11"
+        >
+          <ArrowLeft className="size-[19px] sm:size-5" />
+        </button>
+
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <img
+            src="/logo2.png"
+            alt="Della Nonna"
+            className="h-auto w-[clamp(200px,28vw,280px)]"
+          />
+        </div>
+
+        <nav className="ml-auto flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            aria-label="Carrinho"
+            className="flex size-10 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-secondary sm:size-11"
+          >
+            <ShoppingCart className="size-[19px] sm:size-5" strokeWidth={1.6} />
+          </button>
+        </nav>
+      </header>
+
+      {/* Banner */}
+      <section className="relative isolate h-[clamp(200px,35vw,500px)] w-full overflow-hidden">
+        <img
+          src="/banner1.png"
+          alt="Pizza artesanal com manjericão fresco"
+          width={1408}
+          height={1200}
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
+
+        <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-5 sm:px-8">
+          <p className="max-w-[16rem] text-[clamp(8px,1.5vw,12px)] uppercase leading-relaxed tracking-[0.25em] text-primary-foreground/80">
+            Feito na hora
+          </p>
+          <span className="h-px w-8 bg-accent/100 mt-2" />
+          <h1 className="mt-3 font-display font-bold text-4xl leading-[1.05] text-primary-foreground sm:text-5xl lg:text-6xl">
+            Nosso
+            <span className=" font-bold block italic text-accent">
+              cardápio.
+            </span>
+          </h1>
+        </div>
+      </section>
+      <div>
+        {/* Busca */}
+
+        {/* Categorias */}
+        <div className="sticky top-0 bottom-[100px] z-20 border-b border-border bg-[#F8F4E8] shadow-xs backdrop-blur-sm">
+          <nav
+            className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-8"
+            aria-label="Categorias do cardápio"
+          >
+            {[{ id: "Todas", nome: "Todas" }, ...visibleCategories].map(
+              (category) => {
+                const selected = activeCategory === category.id;
+
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setActiveCategory(category.id)}
+                    aria-pressed={selected}
+                    className={
+                      selected
+                        ? "flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-accent px-5 text-xs font-bold text-accent-foreground shadow-none transition-colors hover:bg-accent/90"
+                        : "h-10 shrink-0 rounded-full border border-border bg-background px-5 text-xs font-bold text-foreground shadow-none transition-colors hover:bg-secondary"
+                    }
+                  >
+                    {selected && <Check className="h-3.5 w-3.5" />}
+                    {category.nome}
+                  </button>
+                );
+              },
+            )}
+          </nav>
+        </div>
+
+        {/* Conteúdo */}
+        {loading ? (
+          <p className="mx-auto max-w-6xl px-4 py-16 text-center text-sm text-muted-foreground sm:px-8">
+            Carregando cardápio…
+          </p>
+        ) : filteredItems.length === 0 ? (
+          <p className="mx-auto max-w-6xl px-4 py-16 text-center text-sm text-muted-foreground sm:px-8">
+            Nenhum item disponível nesta categoria.
+          </p>
+        ) : (
+          <section className="mx-auto max-w-6xl px-4 py-7 sm:px-8 sm:py-10">
+            {/* Título da categoria */}
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-accent sm:text-xs">
+                  {activeCategory === "Todas"
+                    ? "Todos os sabores"
+                    : visibleCategories.find(
+                        (category) => category.id === activeCategory,
+                      )?.nome || activeCategory}
+                </p>
+
+                <h2 className="mt-1 font-display text-2xl font-bold text-foreground sm:text-3xl">
+                  Escolha o seu favorito
+                </h2>
+              </div>
+
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {filteredItems.length}{" "}
+                {filteredItems.length === 1 ? "item" : "itens"}
+              </span>
+            </div>
+
+            {/* Produtos */}
+            <div className="grid gap-3 min-[725px]:grid-cols-2 min-[725px]:gap-5">
+              {filteredItems.map((item) => (
+                <article
+                  key={item.id}
+                  className="grid min-h-[140px] grid-cols-[7rem_1fr] overflow-hidden rounded-lg border border-border bg-[#FCFAF3] shadow-xs sm:min-h-[190px] sm:grid-cols-[11rem_1fr]"
+                >
+                  {/* Imagem */}
+                  <div className="relative min-h-full overflow-hidden bg-secondary">
+                    {item.imagem_url ? (
+                      <img
+                        src={item.imagem_url}
+                        alt={item.nome_comercial}
+                        loading="lazy"
+                        width={1024}
+                        height={768}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="grid h-full place-items-center text-3xl">
+                        🍕
+                      </div>
+                    )}
+
+                    {item.destaque && (
+                      <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-accent px-2 py-1 text-[8px] font-bold uppercase text-accent-foreground sm:text-[9px]">
+                        <Flame className="h-3 w-3 fill-current" />
+                        Destaque
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Conteúdo */}
+                  <div className="flex min-w-0 flex-col p-3 sm:p-5">
+                    <h3 className="font-display text-base font-bold leading-tight text-foreground sm:text-xl">
+                      {item.nome_comercial}
+                    </h3>
+
+                    <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-muted-foreground sm:mt-2 sm:text-sm">
+                      {item.descricao || "Massa artesanal, feita na hora."}
+                    </p>
+
+                    <div className="mt-auto flex items-end justify-between gap-2 pt-3">
+                      <span className="text-sm font-bold text-accent sm:text-lg">
+                        {money(item.preco_venda)}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => startAdd(item)}
+                        aria-label={`Adicionar ${item.nome_comercial}`}
+                        title={`Adicionar ${item.nome_comercial}`}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-none transition-colors hover:bg-accent/90 sm:h-10 sm:w-10"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </main>
+  );
 }

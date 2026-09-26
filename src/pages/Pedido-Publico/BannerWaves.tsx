@@ -19,13 +19,13 @@ export function BannerWaves() {
 
       {/* top wave */}
       <path
-        className="animate-wave-top fill-background"
+        className="animate-wave-top fill-[#F8F4E8]"
         d="M0,0 H1200 V70 C1000,130 820,40 600,90 C400,135 180,60 0,110 Z"
       />
 
       {/* bottom wave — independent, slower rhythm */}
       <path
-        className="animate-wave-bottom fill-background"
+        className="animate-wave-bottom fill-[#F8F4E8]"
         d="M0,600 H1200 V520 C1000,470 820,560 600,515 C400,475 180,555 0,505 Z"
       />
     </svg>

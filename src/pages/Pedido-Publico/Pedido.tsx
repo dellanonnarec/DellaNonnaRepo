@@ -7,12 +7,26 @@ import {
   Home,
   Menu,
   ShoppingCart,
+  Flame,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { publicSupabase } from "../../lib/supabase";
 import { type MenuCategory, type MenuItem, money } from "./types";
 import "./della-theme.css";
 import { BannerWaves } from "./BannerWaves";
+
+const favorites = [
+  {
+    name: "Pizza de Calabresa",
+    description: "Massa artesanal, feita na hora.",
+    price: "R$ 40,00",
+  },
+  {
+    name: "Pizza de Frango com Catupiry",
+    description: "Massa artesanal, feita na hora.",
+    price: "R$ 45,00",
+  },
+];
 
 const CART_KEY = "della-nonna-public-cart";
 
@@ -40,8 +54,8 @@ function readCartCount() {
 }
 
 const categoryImages: Record<string, string> = {
-  "Pizzas Salgadas": "/pizza3.jpg",
-  "Pizzas Doces": "/pizzaDoce.jpg",
+  "Pizzas Salgadas": "/salgada.jpg",
+  "Pizzas Doces": "/doce.jpg",
   Bebidas: "/bebida.jpg",
 };
 
@@ -133,11 +147,15 @@ export default function Pedido() {
   };
 
   return (
-    <main className="min-h-screen bg-background font-sans">
+    <main className="min-h-screen bg-[#F8F4E8] font-sans">
       {/* Header */}
-      <header className="mx-auto relative z-50 flex max-w-6xl items-center justify-between pt-2 px-5 sm:px-8">
+      <header className="mx-auto relative z-50 flex max-w-6xl items-center justify-between pt-2 px-5 sm:px-8 bg-[#F8F4E8]">
         <div className="leading-none">
-          <img src="/logo.png" width={140} height={100} alt="" />
+          <img
+            src="/logo.png"
+            alt=""
+            className="h-auto w-[clamp(90px,12vw,140px)]"
+          />
         </div>
 
         <nav className="flex items-center gap-3">
@@ -171,17 +189,20 @@ export default function Pedido() {
         <BannerWaves />
 
         <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-5 sm:px-8">
-          <p className="max-w-[16rem] text-[0.7rem] uppercase leading-relaxed tracking-[0.25em] text-primary-foreground/80">
-            Sabor, tradição e <br/> qualidade em todo pedido.
+          <p className="max-w-[16rem] text-[clamp(8px,1.5vw,12px)] uppercase leading-relaxed tracking-[0.25em] text-primary-foreground/80">
+            Sabor, tradição e <br /> qualidade em todo pedido.
           </p>
-          <h1 className="mt-6 font-display text-4xl leading-[1.05] text-primary-foreground sm:text-5xl lg:text-6xl">
+          <span className="h-px w-8 bg-accent/100 mt-2" />
+          <h1 className="mt-3 font-display font-bold text-4xl leading-[1.05] text-primary-foreground sm:text-5xl lg:text-6xl">
             Pizza feita
-            <span className="mt-1 font-bold block italic text-accent">com carinho.</span>
+            <span className=" font-bold block italic text-accent">
+              com carinho.
+            </span>
           </h1>
 
           <a
             href="#cardapio"
-            className="mt-8 inline-flex w-fit items-center gap-4 rounded-full border border-primary-foreground/25 py-2 pl-2 pr-6 transition-colors hover:border-primary-foreground/50"
+            className="mt-4 inline-flex w-fit items-center gap-4 rounded-full border border-primary-foreground/25 py-1 pl-2 pr-6 transition-colors hover:border-primary-foreground/50"
           >
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-accent-foreground">
               <ArrowRight className="h-5 w-5" strokeWidth={2} />
@@ -197,41 +218,31 @@ export default function Pedido() {
       {/* Cardápio intro */}
       <section
         id="cardapio"
-        className="mx-auto relative bottom-[120px] flex max-w-6xl flex-wrap items-end justify-between gap-6 px-5 py-12 sm:px-8"
+        className="mx-auto relative bottom-[120px] flex max-w-6xl flex-wrap items-end justify-between gap-6 pl-6 pr-6 py-12 sm:px-8"
       >
-        <div>
-          <p className="flex items-center gap-3 text-[0.7rem] uppercase tracking-[0.25em] text-muted-foreground">
-            Nosso cardápio
-            <span className="h-px w-8 bg-accent/60" />
-          </p>
-          <h2 className="mt-4 font-display text-3xl leading-tight text-foreground sm:text-4xl">
-            Escolha o seu
-            <span className="mt-1 block italic text-accent">favorito.</span>
-          </h2>
+        <div className="flex flex-row justify-between w-full">
+          <div>
+            <p className="flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.25em] text-muted-foreground">
+              Nosso cardápio
+              <span className="h-[2px] w-8 bg-accent/100" />
+            </p>
+            <h2 className=" font-display text-3xl font-bold  text-foreground sm:text-4xl">
+              Escolha o seu
+              <span className=" block italic text-accent">favorito.</span>
+            </h2>
+          </div>
+          <a
+            href="#cardapio"
+            className="flex items-center justify-center-safe text-sm font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            Ver todos
+            <ArrowRight className="h-4 w-4" strokeWidth={2} />
+          </a>
         </div>
-        <a
-          href="#cardapio"
-          className="text-sm font-medium text-accent underline-offset-4 hover:underline"
-        >
-          Ver todos
-        </a>
       </section>
-      <div className="flex flex-row justify-between pb-2">
-        <h2 className="font-serif text-[20px] sm:text-[22px] md:text-[24px] lg:text-[26px] font-bold leading-none text-[#183f2c]">
-          Nosso Cardápio
-        </h2>
-        <span className="flex items-center justify-between gap-0.5 text-[14px] sm:text-[15px] md:text-[16px] font-bold text-[#b51e24]">
-          Ver todos
-          <ChevronRight
-            size={16}
-            className="w-[14px] h-[14px] sm:w-[15px] sm:h-[15px] md:w-[16px] md:h-[16px]"
-            strokeWidth={3}
-          />
-        </span>
-      </div>
       <nav
         aria-label="Categorias do cardápio"
-        className="mt-3 flex flex-col gap-3"
+        className="mt-3 grid gap-2 sm:mt-6 sm:gap-3 relative bottom-[160px] pl-6 pr-6"
       >
         {categories.map((category) => {
           const image = categoryImages[category.nome];
@@ -240,94 +251,138 @@ export default function Pedido() {
             <button
               key={category.id}
               onClick={() => openMenu(category.id)}
-              className="group relative flex h-[120px] w-full overflow-hidden rounded-xl border border-[#eee7d3] bg-[#fffdf4] text-left"
+              className="group relative isolate cursor-pointer h-[95px] max-w-[1233px] mx-auto w-full overflow-hidden rounded-xl border border-border/60 bg-[#F8F4E8] text-left shadow-sm sm:h-28"
             >
-              {/* Imagem à direita */}
               {image && (
                 <img
                   src={image}
                   alt={category.nome}
-                  className="absolute inset-0 h-[60px] min-w-[800px] scale-125 object-contain  transition-transform duration-300 group-hover:scale-[1.35]"
+                  loading="lazy"
+                  width={1024}
+                  height={768}
+                  className="absolute inset-0 h-full w-full object-cover object-[center_46%] transition-transform duration-300 group-hover:scale-[1.03] sm:object-[center_52%]"
                 />
               )}
 
-              {/* Degradê sobre a imagem (mesmo padrão do banner) */}
+              {/* DIVISOR / DEGRADÊ */}
               <div
                 className="pointer-events-none absolute inset-0 z-10"
                 style={{
-                  background:
-                    "linear-gradient(90deg, #fffdf4 0%, #fffdf4 38%, rgba(255,253,244,0.9) 46%, rgba(255,253,244,0.55) 54%, rgba(255,253,244,0) 62%)",
+                  background: `
+                     linear-gradient(
+                       90deg,
+                       #F8F4E8 0%,
+                       #F8F4E8 34%,
+                       rgba(245,237,217,0.98) 42%,
+                       rgba(245,237,217,0.92) 48%,
+                       rgba(245,237,217,0.75) 55%,
+                       rgba(245,237,217,0.52) 61%,
+                       rgba(245,237,217,0.30) 67%,
+                       rgba(245,237,217,0.12) 74%,
+                       rgba(245,237,217,0) 82%
+                     )
+                   `,
                 }}
                 aria-hidden="true"
               />
 
-              {/* Texto à esquerda */}
-              <div className="relative z-20 flex h-full w-[55%] flex-col justify-center px-4 sm:px-5">
-                <span className="mt-1 font-serif font-bold leading-tight text-[#183f2c]">
-                  {category.nome.toLowerCase().includes("pizza") ? (
-                    <>
-                      <span className="block text-[14px] font-medium">
-                        Pizza
-                      </span>
-                      <span className="block text-[21px]">
-                        {category.nome.replace(/pizzas?/i, "").trim()}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-[19px] sm:text-[21px]">
-                      {category.nome}
-                    </span>
-                  )}
-                </span>
+              <div className="relative z-20 flex h-full flex-col justify-center px-3 sm:px-6">
+                {category.nome.toLowerCase().includes("pizza") ? (
+                  <>
+                    <p className="text-[8px] font-bold uppercase tracking-[0.19em] text-accent sm:text-[11px]">
+                      Pizzas
+                    </p>
 
-                <span className="text-[26px] font-medium text-[#183f2c] transition-transform duration-300 group-hover:translate-x-1">
-                  →
-                </span>
+                    <h3 className="font-display text-xl font-bold leading-none text-foreground sm:text-3xl">
+                      {category.nome.replace(/pizzas?/i, "").trim()}
+                    </h3>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.19em] text-accent sm:text-[11px]">
+                      PARA ACOMPANHAR
+                    </p>
+
+                    <h3 className="font-display text-xl font-bold leading-none text-foreground sm:text-3xl">
+                      {category.nome}
+                    </h3>
+                  </>
+                )}
+
+                <ArrowRight
+                  aria-hidden="true"
+                  className="mt-1 h-3.5 w-3.5 text-accent transition-transform duration-300 group-hover:translate-x-1 sm:mt-2 sm:h-5 sm:w-5"
+                  strokeWidth={1.5}
+                />
               </div>
             </button>
           );
         })}
       </nav>
       {featured.length > 0 && (
-        <section className="p-5">
-          <div className="mb-2 flex items-center justify-between px-0.5 pb-2">
-            <h2 className="font-serif text-[20px] sm:text-[22px] md:text-[24px] lg:text-[26px] font-bold leading-none text-[#183f2c]">
-              Mais pedidos
-            </h2>
-          </div>
+        <section className="relative bottom-[140px] mx-auto mt-3 w-full max-w-[1233px]  sm:mt-8 pl-6 pr-6">
+          <div className="mx-auto w-full max-w-[1233px]">
+            {/* Título */}
+            <div className="mb-[clamp(0.75rem,1.5vw,1.25rem)] flex items-center gap-[clamp(0.5rem,1vw,0.875rem)]">
+              <span className="font-bold uppercase leading-none tracking-[clamp(0.16em,0.35vw,0.28em)] text-[clamp(0.75rem,1.5vw,1.1rem)] text-foreground">
+                Mais pedidos
+              </span>
 
-          <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {featured.map((item) => (
-              <button
-                key={item.id}
-                onClick={() =>
-                  navigate("/pedido/cardapio", {
-                    state: { selectedItemId: item.id },
-                  })
-                }
-                className={`${featured.length === 1 ? "w-full min-w-full" : "w-[calc(50%-4px)] min-w-[calc(50%-4px)]"} overflow-hidden rounded-[5px] border border-[#e8e1c8] bg-[#fffdf4] text-left shadow-sm`}
-              >
-                <div className="h-[75px] overflow-hidden bg-[#eee9d7]">
-                  <img
-                    src={item.imagem_url || "/bannerPizza.jpg"}
-                    alt={item.nome_comercial}
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="px-2 py-1.5">
-                  <strong className="block truncate font-serif text-[11px] leading-tight text-[#174b32]">
-                    {item.nome_comercial}
-                  </strong>
-                  <span className="mt-0.5 block text-[9px] text-[#778273]">
-                    {item.descricao || "Massa artesanal, feita na hora."}
-                  </span>
-                  <span className="mt-0.5 block text-[10px] font-bold text-[#b51e24]">
-                    {money(item.preco_venda)}
-                  </span>
-                </div>
-              </button>
-            ))}
+              <span className="h-px w-[clamp(2rem,4vw,3rem)] shrink-0 bg-accent" />
+            </div>
+
+            {/* Cards */}
+            <div className="grid w-full grid-cols-2 justify-center gap-2 sm:gap-4">
+              {featured.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() =>
+                    navigate("/pedido/cardapio", {
+                      state: { selectedItemId: item.id },
+                    })
+                  }
+                  className="group w-full min-w-0 max-w-[620px] justify-self-center overflow-hidden rounded-lg border border-border/60 bg-card text-left shadow-sm"
+                >
+                  <div className="relative h-[clamp(140px,22vw,280px)] w-full overflow-hidden">
+                    <img
+                      src={item.imagem_url || "/bannerPizza.jpg"}
+                      alt={item.nome_comercial}
+                      loading="lazy"
+                      width={1024}
+                      height={768}
+                      className="h-full w-full object-cover object-center"
+                    />
+
+                    <span
+                      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-accent-foreground sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+                      aria-label="Mais pedido"
+                    >
+                      <Flame className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" />
+                    </span>
+                  </div>
+
+                  <div className="px-[clamp(0.5rem,1.5vw,1rem)] pb-[clamp(0.5rem,1.5vw,1rem)] pt-[clamp(0.375rem,1vw,0.75rem)]">
+                    <h3 className="font-display text-[clamp(0.85rem,1.8vw,1.25rem)] font-bold leading-[1.1] text-foreground">
+                      {item.nome_comercial}
+                    </h3>
+
+                    <p className="mt-[clamp(0.25rem,0.6vw,0.5rem)] truncate text-[clamp(0.6rem,1.2vw,0.875rem)] text-muted-foreground">
+                      {item.descricao || "Massa artesanal, feita na hora."}
+                    </p>
+
+                    <div className="mt-[clamp(0.5rem,1vw,0.75rem)] flex items-end justify-between gap-2">
+                      <span className="text-[clamp(0.75rem,1.5vw,1.125rem)] font-bold text-accent">
+                        {money(item.preco_venda)}
+                      </span>
+
+                      <span className="flex h-[clamp(1.5rem,3vw,2.25rem)] w-[clamp(1.5rem,3vw,2.25rem)] shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-transform duration-300 group-hover:translate-x-1">
+                        <ArrowRight className="h-[clamp(0.75rem,1.5vw,1rem)] w-[clamp(0.75rem,3vw,1rem)]" />
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </section>
       )}
