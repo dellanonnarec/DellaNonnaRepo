@@ -583,25 +583,22 @@ export default function CardapioPublico() {
     );
 
     return (
-      <main className="min-h-dvh bg-[#fbf5d9] pb-32 text-[#295727]">
-        <header className="sticky top-0 z-20 border-b border-[#e9e2c9] bg-[#fbf5d9]/95 px-4 py-3 backdrop-blur">
-          <div className="mx-auto flex max-w-xl items-center gap-3">
+      <main className="min-h-dvh bg-[#f8f2df] pb-32 text-[#183a29]">
+        {/* HEADER */}
+        <header className="sticky top-0 z-20 border-b border-[#e5ddc7] bg-[#fbf7e9]/95 px-4 py-3 backdrop-blur-md">
+          <div className="mx-auto flex h-14 max-w-xl items-center justify-between">
             <button
               type="button"
               onClick={() => setSelectedPizza(null)}
               aria-label="Voltar ao cardápio"
-              className="grid size-10 shrink-0 place-items-center rounded-full text-[#315c40] hover:bg-[#f0ead3]"
+              className="grid size-10 shrink-0 place-items-center rounded-full border border-[#ded7c1] text-[#244b35] transition-colors hover:bg-[#f0ead4]"
             >
-              <ArrowLeft size={19} />
+              <ArrowLeft size={19} strokeWidth={1.8} />
             </button>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#849078]">
-                Personalizar pedido
-              </p>
-              <h1 className="truncate font-serif text-lg font-bold text-[#155b3b]">
-                {selectedPizza.nome_comercial}
-              </h1>
-            </div>
+
+            {/* LOGO */}
+            <div className="flex flex-col items-center leading-none">img</div>
+
             <button
               type="button"
               onClick={() => {
@@ -609,11 +606,12 @@ export default function CardapioPublico() {
                 setStep("cart");
               }}
               aria-label={`Carrinho, ${cartCount} itens`}
-              className="relative grid size-10 shrink-0 place-items-center rounded-full bg-[#fffbea] text-[#295727] shadow-sm"
+              className="relative grid size-10 shrink-0 place-items-center rounded-full border border-[#ded7c1] bg-[#fffbee] text-[#244b35] transition-colors hover:bg-[#f0ead4]"
             >
-              <ShoppingCart size={19} />
+              <ShoppingCart size={19} strokeWidth={1.8} />
+
               {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#b51e24] text-[10px] font-bold text-white">
+                <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#c63220] text-[10px] font-bold text-white shadow-sm">
                   {cartCount}
                 </span>
               )}
@@ -621,98 +619,148 @@ export default function CardapioPublico() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-xl px-4 py-4">
-          <section className="overflow-hidden rounded-2xl border border-[#e5ddbd] bg-[#fffbea] shadow-sm">
-            <div className="aspect-[2.1/1] overflow-hidden bg-[#f3eedb]">
-              {selectedPizza.imagem_url ? (
-                <img
-                  src={selectedPizza.imagem_url}
-                  alt={selectedPizza.nome_comercial}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="grid h-full place-items-center text-6xl">
-                  🍕
+        <div className="mx-auto max-w-xl">
+          {/* HERO / PRODUTO */}
+          <section className="relative overflow-hidden bg-[#10251a] text-[#fffbea]">
+            {/* textura decorativa */}
+            <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:radial-gradient(#fff_0.7px,transparent_0.7px)] [background-size:7px_7px]" />
+
+            <div className="relative flex flex-row">
+              {/* FOTO */}
+              <div className="relative h-[200px] w-[47%] shrink-0 overflow-hidden sm:h-[240px] md:h-[280px]">
+                {selectedPizza.imagem_url ? (
+                  <img
+                    src={selectedPizza.imagem_url}
+                    alt={selectedPizza.nome_comercial}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="grid h-full place-items-center bg-[#183423] text-5xl sm:text-6xl">
+                    🍕
+                  </div>
+                )}
+
+                {/* degradê/divisor */}
+                <div className="absolute inset-y-0 right-[-3px] w-[45%] bg-gradient-to-r from-transparent via-[#10251a]/20 to-[#10251a]" />
+
+                {/* etiqueta */}
+                
+              </div>
+
+              {/* INFORMAÇÕES */}
+              <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center py-5 pl-5 pr-4 sm:py-7 sm:pl-7 sm:pr-6">
+                <div className="flex min-w-0 flex-col gap-2.5 sm:gap-4">
+                  <div className="absolute bottom-4 left-4 flex items-center gap-2 sm:left-5">
+                  <span className="text-[8px] font-bold uppercase tracking-[0.22em] text-[#f7ead0] sm:text-[9px] sm:tracking-[0.28em]">
+                    Personalizar pedido
+                  </span>
+
+                  <span className="h-px w-6 bg-[#c63220] sm:w-8" />
                 </div>
-              )}
-            </div>
-            <div className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-serif text-xl font-bold text-[#155b3b]">
+                  <h1 className="font-display text-[23px] font-bold leading-[0.95] tracking-[-0.025em] text-[#fffbea] sm:text-[30px] md:text-[36px]">
                     {selectedPizza.nome_comercial}
-                  </h2>
+                  </h1>
+
                   {selectedPizza.descricao && (
-                    <p className="mt-1 text-xs leading-relaxed text-[#71826a]">
+                    <p className="max-w-[400px] text-[11px] leading-relaxed text-[#d7dcca] sm:text-[13px] md:text-[14px]">
                       {selectedPizza.descricao}
                     </p>
                   )}
+
+                  <strong className="font-display text-[17px] font-bold text-[#d4422b] sm:text-[21px] md:text-[24px]">
+                    {money(selectedPizza.preco_venda)}
+                  </strong>
                 </div>
-                <strong className="shrink-0 text-base text-[#b52327]">
-                  {money(selectedPizza.preco_venda)}
-                </strong>
               </div>
             </div>
           </section>
 
-          {isPizza &&
-            renderAddonGroup(
-              "Bordas",
-              borderItems,
-              "Nenhuma borda disponível no momento.",
-            )}
-          {isPizza &&
-            renderAddonGroup(
-              "Adicionais",
-              extraItems,
-              "Nenhum adicional disponível no momento.",
-            )}
+          {/* OPÇÕES */}
+          <div className="px-4 py-6">
+            {isPizza &&
+              renderAddonGroup(
+                "Bordas",
+                borderItems,
+                "Nenhuma borda disponível no momento.",
+              )}
 
-          <label className="mt-4 block rounded-2xl border border-[#e5ddbd] bg-[#fffbea] p-4 text-sm font-semibold text-[#315c40] shadow-sm">
-            Observações{" "}
-            <span className="font-normal text-[#829078]">(opcional)</span>
-            <textarea
-              value={pizzaObservation}
-              onChange={(event) => setPizzaObservation(event.target.value)}
-              rows={3}
-              maxLength={300}
-              placeholder="Ex.: sem cebola, cortar em 8 pedaços"
-              className="mt-2 w-full resize-y rounded-lg border border-[#e4dfc9] bg-[#fffdf2] p-3 text-sm font-normal outline-none focus:border-[#78936b]"
-            />
-          </label>
+            {isPizza &&
+              renderAddonGroup(
+                "Adicionais",
+                extraItems,
+                "Nenhum adicional disponível no momento.",
+              )}
+
+            {/* OBSERVAÇÕES */}
+            <label className="mt-5 block rounded-2xl border border-[#e2dac1] bg-[#fffbee] p-5 shadow-[0_2px_12px_rgba(48,72,45,0.04)]">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-serif text-[22px] font-bold text-[#183a29]">
+                  Observações
+                </span>
+
+                <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#89927d]">
+                  (opcional)
+                </span>
+              </div>
+
+              <p className="mt-1 text-xs text-[#7b8775]">
+                Alguma preferência especial para o seu pedido?
+              </p>
+
+              <textarea
+                value={pizzaObservation}
+                onChange={(event) => setPizzaObservation(event.target.value)}
+                rows={3}
+                maxLength={300}
+                placeholder="Ex.: sem cebola, cortar em 8 pedaços"
+                className="mt-4 w-full resize-y rounded-xl border border-[#e2dbc5] bg-[#fffdf4] p-3.5 text-sm font-normal text-[#294735] outline-none placeholder:text-[#a3a895] transition focus:border-[#a64a38] focus:ring-2 focus:ring-[#a64a38]/10"
+              />
+
+              <div className="mt-1 text-right text-[10px] text-[#929887]">
+                {pizzaObservation.length}/300
+              </div>
+            </label>
+          </div>
         </div>
 
-        <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-[#e5ddbd] bg-[#fffbea]/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(49,92,64,0.08)] backdrop-blur">
+        {/* FOOTER */}
+        <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-[#e2dac1] bg-[#fbf7e9]/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(38,65,46,0.10)] backdrop-blur-md">
           <div className="mx-auto flex max-w-xl items-center gap-3">
-            <div className="inline-flex h-11 shrink-0 items-center rounded-full border border-[#e5ddbd] bg-[#fffdf2]">
+            {/* QUANTIDADE */}
+            <div className="inline-flex h-12 shrink-0 items-center rounded-full border border-[#ddd5bd] bg-[#fffdf4] shadow-sm">
               <button
                 type="button"
                 onClick={() =>
                   setPizzaQuantity((value) => Math.max(1, value - 1))
                 }
                 aria-label="Diminuir quantidade"
-                className="grid size-10 place-items-center text-lg"
+                className="grid size-10 place-items-center text-xl text-[#31543d] transition-colors hover:text-[#b83222]"
               >
                 −
               </button>
-              <span className="w-5 text-center text-sm font-semibold">
+
+              <span className="w-5 text-center text-sm font-bold text-[#274734]">
                 {pizzaQuantity}
               </span>
+
               <button
                 type="button"
                 onClick={() => setPizzaQuantity((value) => value + 1)}
                 aria-label="Aumentar quantidade"
-                className="grid size-10 place-items-center text-lg"
+                className="grid size-10 place-items-center text-xl text-[#31543d] transition-colors hover:text-[#b83222]"
               >
                 +
               </button>
             </div>
+
+            {/* CTA */}
             <button
               type="button"
               onClick={confirmPizzaAndExtras}
-              className="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-[#b51e24] px-4 text-sm font-bold text-white shadow-sm"
+              className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-[#c63220] px-4 text-sm font-bold text-white shadow-[0_4px_12px_rgba(198,50,32,0.20)] transition hover:bg-[#ad2b1c] active:scale-[0.99]"
             >
-              <Plus size={17} />
+              <Plus size={17} strokeWidth={2.5} />
+
               <span className="truncate">
                 Adicionar ao carrinho ·{" "}
                 {money(customizedUnitPrice * pizzaQuantity)}
