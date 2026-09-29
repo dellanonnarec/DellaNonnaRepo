@@ -526,28 +526,91 @@ export default function CardapioPublico() {
       groupItems: MenuItem[],
       emptyMessage: string,
     ) => (
-      <section className="mt-4 rounded-2xl border border-[#e5ddbd] bg-[#fffbea] p-4 shadow-sm">
+      <section className="">
         <div className="mb-2">
           <h2 className="font-serif text-lg font-bold text-[#155b3b]">
             {title}
           </h2>
+
           <p className="text-xs text-[#829078]">
             Escolha se deseja incluir {title.toLocaleLowerCase("pt-BR")} na
             pizza
           </p>
         </div>
+
         {groupItems.length === 0 ? (
           <p className="rounded-lg bg-[#f7f1dc] p-3 text-sm text-[#71826a]">
             {emptyMessage}
           </p>
-        ) : (
-          <div className="divide-y divide-[#eee8d4]">
+        ) : title.toLowerCase() === "adicionais" ? (
+          /* ADICIONAIS */
+          <div className="grid grid-cols-2 gap-2">
             {groupItems.map((item) => {
               const checked = selectedExtras.includes(item.id);
+
               return (
                 <label
                   key={item.id}
-                  className="flex min-h-12 cursor-pointer items-center gap-3 py-2.5"
+                  className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-[#eee8d4] bg-[#FCFAF3] p-2"
+                >
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-[#f3edda]">
+                    {item.imagem_url && (
+                      <img
+                        src={item.imagem_url}
+                        alt={item.nome_comercial}
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <strong className="block truncate text-[11px] font-bold text-[#315c40]">
+                      {item.nome_comercial}
+                    </strong>
+
+                    <span className=" block text-[11px] font-bold text-[#b51e24]">
+                      + {money(item.preco_venda)}
+                    </span>
+                  </div>
+
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) =>
+                      setSelectedExtras((current) =>
+                        event.target.checked
+                          ? [...current, item.id]
+                          : current.filter((id) => id !== item.id),
+                      )
+                    }
+                    className="
+                  size-4
+                  shrink-0
+                  appearance-none
+                  rounded
+                  border
+                  border-[#c9c5b8]
+                  bg-white
+                  cursor-pointer
+                  transition-all
+                  checked:border-[#b51e24]
+                  checked:bg-[#b51e24]
+                "
+                  />
+                </label>
+              );
+            })}
+          </div>
+        ) : (
+          /* BORDAS — MANTIDA COMO ESTÁ */
+          <div className="flex flex-col max-w-[200px] min-w-[144px] min-h-[100px] mb-5 rounded-lg border border-[#eee8d4] bg-[#FCFAF3] px-3 py-2 text-sm text-[#71826a]">
+            {groupItems.map((item) => {
+              const checked = selectedExtras.includes(item.id);
+
+              return (
+                <label
+                  key={item.id}
+                  className="flex w-full min-h-12 cursor-pointer items-start gap-3 py-2.5"
                 >
                   <input
                     type="checkbox"
@@ -559,21 +622,36 @@ export default function CardapioPublico() {
                           : current.filter((id) => id !== item.id),
                       )
                     }
-                    className="size-5 accent-[#b51e24]"
+                    className="
+                  mt-0.5
+                  size-5
+                  shrink-0
+                  appearance-none
+                  rounded-full
+                  border-2
+                  bg-white
+                  cursor-pointer
+                  transition-all
+                  checked:border-[#b51e24]
+                  checked:bg-[#b51e24]
+                "
                   />
-                  <span className="min-w-0 flex-1">
-                    <strong className="block text-sm font-semibold text-[#315c40]">
+
+                  <div className="min-w-0 flex-1 text-left">
+                    <strong className="block break-words text-sm font-semibold text-[#315c40]">
                       {item.nome_comercial}
                     </strong>
+
                     {item.descricao && (
-                      <small className="text-xs text-[#829078]">
+                      <small className="block break-words text-xs text-[#829078]">
                         {item.descricao}
                       </small>
                     )}
-                  </span>
-                  <span className="whitespace-nowrap text-sm text-[#71826a]">
-                    + {money(item.preco_venda)}
-                  </span>
+
+                    <span className="mt-2 block text-[11px] font-bold text-[#b51e24]">
+                      + {money(item.preco_venda)}
+                    </span>
+                  </div>
                 </label>
               );
             })}
@@ -583,41 +661,36 @@ export default function CardapioPublico() {
     );
 
     return (
-      <main className="min-h-dvh bg-[#f8f2df] pb-32 text-[#183a29]">
+      <main className="min-h-dvh bg-[#F8F4E8] pb-32 text-[#183a29]">
         {/* HEADER */}
-        <header className="sticky top-0 z-20 border-b border-[#e5ddc7] bg-[#fbf7e9]/95 px-4 py-3 backdrop-blur-md">
-          <div className="mx-auto flex h-14 max-w-xl items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setSelectedPizza(null)}
-              aria-label="Voltar ao cardápio"
-              className="grid size-10 shrink-0 place-items-center rounded-full border border-[#ded7c1] text-[#244b35] transition-colors hover:bg-[#f0ead4]"
-            >
-              <ArrowLeft size={19} strokeWidth={1.8} />
-            </button>
+        <header className="relative h-[90px] z-50 mx-auto flex w-full max-w-6xl items-center justify-between bg-[#F8F4E8] px-3 pt-2 sm:px-6 md:px-8">
+        <button
+          type="button"
+          onClick={() => setSelectedPizza(null)}
+          aria-label="Voltar ao cardápio"
+          className="grid size-10 shrink-0 place-items-center rounded-full text-[#315c40] transition-colors hover:bg-[#f0ead3] sm:size-11"
+        >
+          <ArrowLeft className="size-[19px] sm:size-5" />
+        </button>
 
-            {/* LOGO */}
-            <div className="flex flex-col items-center leading-none">img</div>
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <img
+            src="/logo2.png"
+            alt="Della Nonna"
+            className="h-auto w-[clamp(200px,28vw,280px)]"
+          />
+        </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedPizza(null);
-                setStep("cart");
-              }}
-              aria-label={`Carrinho, ${cartCount} itens`}
-              className="relative grid size-10 shrink-0 place-items-center rounded-full border border-[#ded7c1] bg-[#fffbee] text-[#244b35] transition-colors hover:bg-[#f0ead4]"
-            >
-              <ShoppingCart size={19} strokeWidth={1.8} />
-
-              {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#c63220] text-[10px] font-bold text-white shadow-sm">
-                  {cartCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </header>
+        <nav className="ml-auto flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            aria-label="Carrinho"
+            className="flex size-10 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-secondary sm:size-11"
+          >
+            <ShoppingCart className="size-[19px] sm:size-5" strokeWidth={1.6} />
+          </button>
+        </nav>
+      </header>
 
         <div className="mx-auto max-w-xl">
           {/* HERO / PRODUTO */}
@@ -644,19 +717,18 @@ export default function CardapioPublico() {
                 <div className="absolute inset-y-0 right-[-3px] w-[45%] bg-gradient-to-r from-transparent via-[#10251a]/20 to-[#10251a]" />
 
                 {/* etiqueta */}
-                
               </div>
 
               {/* INFORMAÇÕES */}
               <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center py-5 pl-5 pr-4 sm:py-7 sm:pl-7 sm:pr-6">
                 <div className="flex min-w-0 flex-col gap-2.5 sm:gap-4">
-                  <div className="absolute bottom-4 left-4 flex items-center gap-2 sm:left-5">
-                  <span className="text-[8px] font-bold uppercase tracking-[0.22em] text-[#f7ead0] sm:text-[9px] sm:tracking-[0.28em]">
-                    Personalizar pedido
-                  </span>
+                  <div className=" bottom-4 left-4 flex items-center gap-2 sm:left-5">
+                    <span className="text-[8px] font-bold uppercase tracking-[0.22em] text-[#f7ead0] sm:text-[9px] sm:tracking-[0.28em]">
+                      Personalizar pedido
+                    </span>
 
-                  <span className="h-px w-6 bg-[#c63220] sm:w-8" />
-                </div>
+                    <span className="h-px w-6 bg-[#c63220] sm:w-8" />
+                  </div>
                   <h1 className="font-display text-[23px] font-bold leading-[0.95] tracking-[-0.025em] text-[#fffbea] sm:text-[30px] md:text-[36px]">
                     {selectedPizza.nome_comercial}
                   </h1>
@@ -667,7 +739,7 @@ export default function CardapioPublico() {
                     </p>
                   )}
 
-                  <strong className="font-display text-[17px] font-bold text-[#d4422b] sm:text-[21px] md:text-[24px]">
+                  <strong className=" text-[17px] font-semibold text-[#d4422b] sm:text-[21px] md:text-[24px]">
                     {money(selectedPizza.preco_venda)}
                   </strong>
                 </div>
@@ -692,7 +764,7 @@ export default function CardapioPublico() {
               )}
 
             {/* OBSERVAÇÕES */}
-            <label className="mt-5 block rounded-2xl border border-[#e2dac1] bg-[#fffbee] p-5 shadow-[0_2px_12px_rgba(48,72,45,0.04)]">
+            <label className="mt-5 block bg-[#F8F4E8] ">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-serif text-[22px] font-bold text-[#183a29]">
                   Observações
