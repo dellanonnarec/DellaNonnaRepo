@@ -162,9 +162,17 @@ export default function Pedido() {
           <button
             type="button"
             aria-label="Carrinho"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-secondary"
+            onClick={() =>
+              navigate("/pedido/cardapio", { state: { openCart: true } })
+            }
+            className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-secondary"
           >
             <ShoppingCart className="h-5 w-5" strokeWidth={1.6} />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold leading-none text-accent-foreground">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
           </button>
           <button
             type="button"

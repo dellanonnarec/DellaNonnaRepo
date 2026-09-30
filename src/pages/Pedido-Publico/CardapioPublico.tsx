@@ -664,33 +664,42 @@ export default function CardapioPublico() {
       <main className="min-h-dvh bg-[#F8F4E8] pb-32 text-[#183a29]">
         {/* HEADER */}
         <header className="relative h-[90px] z-50 mx-auto flex w-full max-w-6xl items-center justify-between bg-[#F8F4E8] px-3 pt-2 sm:px-6 md:px-8">
-        <button
-          type="button"
-          onClick={() => setSelectedPizza(null)}
-          aria-label="Voltar ao cardápio"
-          className="grid size-10 shrink-0 place-items-center rounded-full text-[#315c40] transition-colors hover:bg-[#f0ead3] sm:size-11"
-        >
-          <ArrowLeft className="size-[19px] sm:size-5" />
-        </button>
-
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <img
-            src="/logo2.png"
-            alt="Della Nonna"
-            className="h-auto w-[clamp(200px,28vw,280px)]"
-          />
-        </div>
-
-        <nav className="ml-auto flex items-center gap-2 sm:gap-3">
           <button
             type="button"
-            aria-label="Carrinho"
-            className="flex size-10 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-secondary sm:size-11"
+            onClick={() => setSelectedPizza(null)}
+            aria-label="Voltar ao cardápio"
+            className="grid size-10 shrink-0 place-items-center rounded-full text-[#315c40] transition-colors hover:bg-[#f0ead3] sm:size-11"
           >
-            <ShoppingCart className="size-[19px] sm:size-5" strokeWidth={1.6} />
+            <ArrowLeft className="size-[19px] sm:size-5" />
           </button>
-        </nav>
-      </header>
+
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <img
+              src="/logo2.png"
+              alt="Della Nonna"
+              className="h-auto w-[clamp(200px,28vw,280px)]"
+            />
+          </div>
+
+          <nav className="ml-auto flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              aria-label="Carrinho"
+              onClick={() => setStep("cart")}
+              className="relative flex size-10 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-secondary sm:size-11"
+            >
+              <ShoppingCart
+                className="size-[19px] sm:size-5"
+                strokeWidth={1.6}
+              />
+              {cartCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold leading-none text-accent-foreground">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </button>
+          </nav>
+        </header>
 
         <div className="mx-auto max-w-xl">
           {/* HERO / PRODUTO */}
@@ -868,9 +877,15 @@ export default function CardapioPublico() {
           <button
             type="button"
             aria-label="Carrinho"
-            className="flex size-10 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-secondary sm:size-11"
+            onClick={() => setStep("cart")}
+            className="relative flex size-10 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-secondary sm:size-11"
           >
             <ShoppingCart className="size-[19px] sm:size-5" strokeWidth={1.6} />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold leading-none text-accent-foreground">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
           </button>
         </nav>
       </header>
