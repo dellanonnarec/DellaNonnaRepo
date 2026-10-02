@@ -1,9 +1,23 @@
-import { ArrowLeft, ArrowRight, Building2, Hash, House, MapIcon, MapPin, ShoppingCart, Star } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  Hash,
+  House,
+  MapIcon,
+  MapPin,
+  ShoppingCart,
+  Star,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { DeliveryAddress } from "./types";
 
 type Props = {
   value: DeliveryAddress;
   onChange: (value: DeliveryAddress) => void;
+  previousAddress: DeliveryAddress | null;
+  onUsePreviousAddress: () => void;
+  onEnterAnotherAddress: () => void;
   onBack: () => void;
   onContinue: () => void;
 };
@@ -18,24 +32,131 @@ const fields: {
   { key: "numero", label: "Número", required: true },
   { key: "complemento", label: "Complemento" },
   { key: "bairro", label: "Bairro", required: true },
+  { key: "cidade", label: "Cidade" },
   {
     key: "referencia",
     label: "Ponto de referência",
     className: "sm:col-span-2",
   },
 ];
+
+const addressPatterns: Record<keyof DeliveryAddress, RegExp> = {
+  cep: /^\d{5}-?\d{3}$/,
+  rua: /^[\p{L}\p{N}\s.,'’ºª°/#()\-]+$/u,
+  numero: /^\d+[\p{L}]?(?:[-/](?:\d+[\p{L}]?|[\p{L}]))?$/u,
+  complemento: /^[\p{L}\p{N}\s.,'’ºª°/#()\-]+$/u,
+  bairro: /^[\p{L}\p{N}\s.,'’ºª°/#()\-]+$/u,
+  cidade: /^[\p{L}\s]+$/u,
+  referencia: /^[\p{L}\p{N}\s.,'’ºª°/#()\-]+$/u,
+};
+
+const addressErrorMessages: Record<keyof DeliveryAddress, string> = {
+  cep: "Informe um CEP válido com 8 dígitos (ex.: 00000-000).",
+  rua: "Use letras, números e caracteres comuns de endereço.",
+  numero: "Informe um número válido (ex.: 12A ou 123-B).",
+  complemento: "Use letras, números e caracteres comuns.",
+  bairro: "Use letras, números e caracteres comuns.",
+  cidade: "Informe uma cidade usando letras e espaços.",
+  referencia: "Use letras, números e caracteres comuns.",
+};
+
+function formatCep(input: string) {
+  const digits = input.replace(/\D/g, "").slice(0, 8);
+  return digits.length > 5
+    ? `${digits.slice(0, 5)}-${digits.slice(5)}`
+    : digits;
+}
+
 export default function AddressPage({
   value,
   onChange,
+  previousAddress,
+  onUsePreviousAddress,
+  onEnterAnotherAddress,
   onBack,
   onContinue,
 }: Props) {
-  const valid = Boolean(
-    value.cep.trim() &&
-    value.rua.trim() &&
-    value.numero.trim() &&
-    value.bairro.trim(),
+  const [cepLookupMessage, setCepLookupMessage] = useState("");
+  const [touchedFields, setTouchedFields] = useState<
+    Partial<Record<keyof DeliveryAddress, boolean>>
+  >({});
+  const addressRef = useRef(value);
+  const cepRequestRef = useRef<AbortController | null>(null);
+  addressRef.current = value;
+
+  useEffect(
+    () => () => {
+      cepRequestRef.current?.abort();
+    },
+    [],
   );
+
+  const lookupCep = async (rawCep: string) => {
+    cepRequestRef.current?.abort();
+    const cep = rawCep.replace(/\D/g, "");
+    if (!/^\d{8}$/.test(cep)) {
+      setCepLookupMessage("");
+      return;
+    }
+
+    const controller = new AbortController();
+    cepRequestRef.current = controller;
+    setCepLookupMessage("Consultando CEP...");
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error("Falha ao consultar o CEP.");
+
+      const result = (await response.json()) as {
+        erro?: boolean;
+        cep?: string;
+        logradouro?: string;
+        bairro?: string;
+        localidade?: string;
+      };
+      if (controller.signal.aborted) return;
+      if (result.erro) {
+        setCepLookupMessage(
+          "CEP não encontrado. Preencha o endereço manualmente.",
+        );
+        return;
+      }
+
+      onChange({
+        ...addressRef.current,
+        cep: result.cep || rawCep,
+        rua: result.logradouro || "",
+        bairro: result.bairro || "",
+        cidade: result.localidade || "",
+      });
+      setCepLookupMessage("");
+    } catch {
+      if (!controller.signal.aborted) {
+        setCepLookupMessage(
+          "Não foi possível consultar o CEP. Tente novamente.",
+        );
+      }
+    }
+  };
+
+  const requiredFields: (keyof DeliveryAddress)[] = [
+    "cep",
+    "rua",
+    "numero",
+    "bairro",
+  ];
+  const requiredValuesPresent = requiredFields.every((key) =>
+    value[key].trim(),
+  );
+  const allProvidedValuesValid = (
+    Object.keys(addressPatterns) as (keyof DeliveryAddress)[]
+  ).every((key) => {
+    const fieldValue = value[key].trim();
+    return !fieldValue || addressPatterns[key].test(fieldValue);
+  });
+  const valid = requiredValuesPresent && allProvidedValuesValid;
   return (
     <main className="min-h-screen overflow-hidden bg-[#F8F4E8] text-[#183f2c]">
       {/* HEADER */}
@@ -63,16 +184,15 @@ export default function AddressPage({
       </header>
 
       {/* CONTEÚDO */}
-      <div className="relative mx-auto max-w-[1080px] px-5 pb-24 pt-10 sm:px-8 lg:pt-12">
+      <div className="relative mx-auto w-full max-w-xl px-4 pb-16 pt-5 sm:px-6 sm:pb-24 sm:pt-6">
         {/* STEPPER */}
-        <div className="flex max-w-[250px]  items-center">
+        <div className="mx-auto flex w-full max-w-[300px] items-center">
           {/* Etapa 1 */}
           <div className="relative flex flex-1 items-center">
             <div className="z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#b52327] text-[10px] font-semibold text-white">
               1
             </div>
 
-            {/* Linha até a etapa 2 */}
             <div className="h-px flex-1 bg-[#b52327]" />
           </div>
 
@@ -82,17 +202,15 @@ export default function AddressPage({
               2
             </div>
 
-            {/* Linha até a etapa 3 */}
             <div className="h-px flex-1 bg-[#b52327]" />
           </div>
 
           {/* Etapa 3 */}
           <div className="relative flex flex-1 items-center">
-            <div className="z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#dfd5b8] bg-[#fdf8e8] text-[10px] font-medium text-[#8d876f]">
+            <div className="z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#dfd5b8] bg-[#b52327] text-[10px] font-medium text-white">
               3
             </div>
 
-            {/* Linha até a etapa 4 */}
             <div className="h-px flex-1 bg-[#dfd5b8]" />
           </div>
 
@@ -103,153 +221,201 @@ export default function AddressPage({
         </div>
 
         {/* TÍTULO */}
-        <div className="mb-4 mt-4">
+        <div className="mb-5 mt-6">
+          <span className="text-[10px] font-bold tracking-wide text-[#B52327] sm:text-[11px]">
+            SEU PEDIDO
+          </span>
 
-          <h1 className="mt-2 font-serif text-4xl font-bold leading-tight text-[#183f2c] sm:text-5xl">
+          <h1 className="mt-1 font-serif text-3xl font-bold leading-tight text-[#183f2c] sm:text-4xl">
             Endereço de entrega
           </h1>
 
-          <p className="mt-2 max-w-2xl font-serif text-lg text-[#71826a] sm:text-xl">
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#71826a] sm:text-base">
             Informe o seu endereço para que possamos entregar seu pedido.
           </p>
         </div>
 
-        {/* DECORAÇÃO */}
-        <div className="pointer-events-none absolute right-[-30px] top-[130px] hidden opacity-30 lg:block">
-          <svg
-            width="180"
-            height="250"
-            viewBox="0 0 180 250"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M155 10C112 52 105 104 117 157C123 183 136 209 157 236"
-              stroke="#8b8b55"
-              strokeWidth="4"
-              strokeLinecap="round"
-            />
-            <path
-              d="M122 65C93 46 68 46 45 57C72 78 97 81 122 65Z"
-              fill="#a5a26d"
-            />
-            <path
-              d="M112 105C82 91 55 96 36 113C63 127 89 124 112 105Z"
-              fill="#a5a26d"
-            />
-            <path
-              d="M119 145C90 134 66 141 50 160C77 170 101 165 119 145Z"
-              fill="#a5a26d"
-            />
-            <path
-              d="M135 44C137 17 150 3 169 0C171 23 159 39 135 44Z"
-              fill="#a5a26d"
-            />
-            <path
-              d="M126 87C131 62 144 49 163 47C164 69 150 82 126 87Z"
-              fill="#a5a26d"
-            />
-            <path
-              d="M135 128C143 106 157 95 176 96C173 117 159 128 135 128Z"
-              fill="#a5a26d"
-            />
-          </svg>
-        </div>
-
         {/* FORMULÁRIO */}
-        <div className="relative rounded-[20px] border border-[#e5d9b8] bg-[#fffbea] p-5 shadow-[0_12px_35px_rgba(88,72,30,0.06)] sm:p-10">
-          <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
-            {fields.map(({ key, label, required, className }) => (
-              <label
-                key={key}
-                className={`block text-sm font-semibold text-[#183f2c] ${
-                  className ?? ""
-                }`}
-              >
-                <span className="mb-2 block">{label}</span>
+        <div className="relative rounded-[20px] border border-[#e5d9b8] bg-[#fffbea] p-4 shadow-[0_12px_35px_rgba(88,72,30,0.06)] sm:p-6">
+          <div className="grid gap-x-5 gap-y-2 sm:grid-cols-2">
+            {fields.map(({ key, label, required, className }) => {
+              const fieldValue = value[key].trim();
 
-                <div className="relative">
-                  {/* Ícones */}
-                  <div className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-[#526d58]">
-                    {key === "cep" && <MapPin size={20} strokeWidth={1.8} />}
+              const hasError = Boolean(
+                touchedFields[key] &&
+                fieldValue &&
+                !addressPatterns[key].test(fieldValue),
+              );
 
-                    {key === "rua" && <House size={20} strokeWidth={1.8} />}
+              return (
+                <label
+                  key={key}
+                  className={`block text-sm font-semibold text-[#183f2c] ${
+                    className ?? ""
+                  }`}
+                >
+                  <span className="mb-2 block">{label}</span>
 
-                    {key === "numero" && <Hash size={20} strokeWidth={1.8} />}
+                  <div className="relative">
+                    {/* Ícone */}
+                    <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#526d58]">
+                      {key === "cep" && <MapPin size={19} strokeWidth={1.8} />}
 
-                    {key === "complemento" && (
-                      <Building2 size={20} strokeWidth={1.8} />
-                    )}
+                      {key === "rua" && <House size={19} strokeWidth={1.8} />}
 
-                    {key === "bairro" && <MapIcon size={20} strokeWidth={1.8} />}
+                      {key === "numero" && <Hash size={19} strokeWidth={1.8} />}
 
-                    {key === "referencia" && (
-                      <Star size={20} strokeWidth={1.8} />
-                    )}
+                      {key === "complemento" && (
+                        <Building2 size={19} strokeWidth={1.8} />
+                      )}
+
+                      {key === "bairro" && (
+                        <MapIcon size={19} strokeWidth={1.8} />
+                      )}
+
+                      {key === "referencia" && (
+                        <Star size={19} strokeWidth={1.8} />
+                      )}
+                    </div>
+
+                    <input
+                      required={required}
+                      autoComplete={
+                        key === "cidade"
+                          ? "address-level2"
+                          : key === "numero"
+                            ? "off"
+                            : key
+                      }
+                      value={value[key]}
+                      aria-invalid={hasError}
+                      onBlur={() =>
+                        setTouchedFields((current) => ({
+                          ...current,
+                          [key]: true,
+                        }))
+                      }
+                      onChange={(event) => {
+                        const nextValue =
+                          key === "cep"
+                            ? formatCep(event.target.value)
+                            : event.target.value;
+
+                        onChange({
+                          ...value,
+                          [key]: nextValue,
+                        });
+
+                        if (key === "cep") {
+                          void lookupCep(nextValue);
+                        }
+                      }}
+                      placeholder={
+                        key === "cep"
+                          ? "Digite seu CEP"
+                          : key === "rua"
+                            ? "Digite o nome da rua"
+                            : key === "numero"
+                              ? "Digite o número"
+                              : key === "complemento"
+                                ? "Ex.: Apto, Bloco, Casa, etc."
+                                : key === "bairro"
+                                  ? "Digite o nome do bairro"
+                                  : key === "cidade"
+                                    ? "Digite a cidade"
+                                    : "Ex.: Próximo ao mercado, escola, etc."
+                      }
+                      className={`h-11 w-full rounded-[12px] border bg-[#fffdf5] pl-12 pr-3 text-sm font-normal text-[#315c40] outline-none transition placeholder:text-[#9b9b83] focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/10 ${
+                        hasError
+                          ? "border-[#b51e24] focus:border-[#b51e24] focus:ring-[#b51e24]/10"
+                          : "border-[#dfd3b2]"
+                      }`}
+                    />
+
                   </div>
 
-                  <input
-                    required={required}
-                    autoComplete={key === "numero" ? "off" : key}
-                    value={value[key]}
-                    onChange={(event) =>
-                      onChange({
-                        ...value,
-                        [key]: event.target.value,
-                      })
-                    }
-                    placeholder={
-                      key === "cep"
-                        ? "Digite seu CEP"
-                        : key === "rua"
-                          ? "Digite o nome da rua"
-                          : key === "numero"
-                            ? "Digite o número"
-                            : key === "complemento"
-                              ? "Ex.: Apto, Bloco, Casa, etc."
-                              : key === "bairro"
-                                ? "Digite o nome do bairro"
-                                : "Ex.: Próximo ao mercado, escola, etc."
-                    }
-                    className="h-[40px] w-full rounded-[12px] border border-[#dfd3b2] 
-                    bg-[#fffdf5] pl-[48px]  text-[14px] font-normal text-[#315c40] placeholder:text-[#9b9b83] outline-none transition focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/10"
-                  />
-                </div>
-              </label>
-            ))}
+                  {key === "cep" && cepLookupMessage && (
+                    <small className="mt-1 block text-xs font-normal text-[#71826a]">
+                      {cepLookupMessage}
+                    </small>
+                  )}
+
+                  {hasError && (
+                    <small className="mt-1 block text-xs font-normal text-[#b51e24]">
+                      {addressErrorMessages[key]}
+                    </small>
+                  )}
+                </label>
+              );
+            })}
           </div>
 
           {/* CONTINUAR */}
-          <button
-            disabled={!valid}
-            onClick={onContinue}
-            className="mt-9 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#b51e24]  text-[18px] font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <span>Continuar</span>
-            <ArrowRight size={22} strokeWidth={1.8}  />
-          </button>
+          <div className="flex w-full justify-center">
+            <button
+              disabled={!valid}
+              onClick={onContinue}
+              className="mt-7 flex h-12 w-full max-w-[300px] items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 text-base font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-[17px]"
+            >
+              <span>Continuar</span>
+              <ArrowRight size={20} strokeWidth={1.8} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ONDA DECORATIVA INFERIOR */}
-      <div className="pointer-events-none relative mt-[-25px] h-[120px] overflow-hidden">
-        <svg
-          className="absolute bottom-0 left-0 h-full w-full"
-          viewBox="0 0 1440 160"
-          preserveAspectRatio="none"
-          xmlns="http://www.w3.org/2000/svg"
+      {previousAddress && (
+        <div
+          className="fixed inset-0 z-[100] grid place-items-center bg-[#183f2c]/50 p-4 backdrop-blur-sm"
+          role="presentation"
         >
-          <path
-            d="M0 100C180 65 280 72 450 108C620 144 760 145 930 105C1110 63 1250 64 1440 105V160H0Z"
-            fill="#183f2c"
-          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="previous-address-title"
+            className="w-full max-w-md overflow-hidden rounded-[24px] border border-[#e5d9b8] bg-[#fffbea] shadow-[0_24px_70px_rgba(24,63,44,0.28)]"
+          >
+            <div className="bg-[#183f2c] px-6 py-5 text-[#fffbea]">
+              <div className="mb-3 flex size-11 items-center justify-center rounded-full bg-white/10 text-[#f4d58a]">
+                <MapPin size={21} strokeWidth={1.8} />
+              </div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e7c97d]">
+                Endereço encontrado
+              </p>
+              <h2
+                id="previous-address-title"
+                className="mt-2 font-serif text-2xl font-bold leading-tight"
+              >
+                Que bom ter você por aqui novamente!
+              </h2>
+            </div>
 
-          <path
-            d="M0 120C190 86 305 91 475 121C650 151 770 154 950 120C1135 85 1260 88 1440 120V160H0Z"
-            fill="#b51e24"
-          />
-        </svg>
-      </div>
+            <div className="p-6">
+              <p className="text-sm leading-relaxed text-[#526d58]">
+                Encontramos os dados do seu último pedido. Deseja utilizá-los
+                novamente?
+              </p>
+
+              <div className="mt-6 grid gap-3">
+                <button
+                  type="button"
+                  onClick={onUsePreviousAddress}
+                  className="flex h-12 w-full items-center justify-center rounded-xl bg-[#b51e24] px-4 text-sm font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f]"
+                >
+                  Usar dados do último pedido
+                </button>
+                <button
+                  type="button"
+                  onClick={onEnterAnotherAddress}
+                  className="flex h-12 w-full items-center justify-center rounded-xl border border-[#d9cfad] bg-[#fffdf5] px-4 text-sm font-semibold text-[#315c40] transition hover:bg-[#f3eedb]"
+                >
+                  Preencher outro endereço
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

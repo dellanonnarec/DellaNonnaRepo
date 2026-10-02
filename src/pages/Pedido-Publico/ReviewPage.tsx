@@ -161,7 +161,7 @@ export default function ReviewPage({
         <div className="mt-4 space-y-2 text-sm text-[#526d58]">
           <p>
             {fulfillment === "delivery"
-              ? `${address.rua}, ${address.numero} — ${address.bairro}, ${address.cep}`
+              ? `${address.rua}, ${address.numero} — ${address.bairro}${address.cidade ? `, ${address.cidade}` : ""}, ${address.cep}`
               : "Retirada no local"}
           </p>
 

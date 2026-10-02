@@ -46,6 +46,7 @@ const emptyAddress: DeliveryAddress = {
   numero: "",
   complemento: "",
   bairro: "",
+  cidade: "",
   referencia: "",
 };
 
@@ -107,6 +108,8 @@ export default function CardapioPublico() {
     "",
   );
   const [address, setAddress] = useState<DeliveryAddress>(emptyAddress);
+  const [previousAddress, setPreviousAddress] =
+    useState<DeliveryAddress | null>(null);
   const [customer, setCustomer] = useState<Customer>({
     name: "",
     whatsapp: "",
@@ -355,6 +358,7 @@ export default function CardapioPublico() {
       complemento:
         fulfillment === "delivery" ? address.complemento.trim() || null : null,
       bairro: fulfillment === "delivery" ? address.bairro.trim() : null,
+      cidade: fulfillment === "delivery" ? address.cidade.trim() : null,
       referencia:
         fulfillment === "delivery" ? address.referencia.trim() || null : null,
       forma_pagamento: payment,
@@ -395,6 +399,43 @@ export default function CardapioPublico() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const continueFromCustomer = async () => {
+    if (fulfillment !== "delivery") {
+      setStep("payment");
+      return;
+    }
+
+    setPreviousAddress(null);
+    if (publicSupabase) {
+      try {
+        const { data, error: lookupError } = await publicSupabase.rpc(
+          "buscar_endereco_cliente_checkout",
+          {
+            p_nome_completo: customer.name.trim(),
+            p_whatsapp: customer.whatsapp.trim(),
+          },
+        );
+        if (lookupError) throw lookupError;
+        const match = Array.isArray(data) ? data[0] : data;
+        if (match) {
+          setPreviousAddress({
+            cep: match.cep ?? "",
+            rua: match.rua ?? "",
+            numero: match.numero ?? "",
+            complemento: match.complemento ?? "",
+            bairro: match.bairro ?? "",
+            cidade: match.cidade ?? "",
+            referencia: match.referencia ?? "",
+          });
+        }
+      } catch (cause) {
+        console.error("Falha ao consultar endereço anterior:", cause);
+      }
+    }
+
+    setStep("address");
   };
 
   if (routeState?.selectedItemId && !selectedPizza) {
@@ -455,9 +496,7 @@ export default function CardapioPublico() {
         value={fulfillment}
         onBack={() => setStep("cart")}
         onChoose={setFulfillment}
-        onContinue={() =>
-          setStep(fulfillment === "delivery" ? "address" : "customer")
-        }
+        onContinue={() => setStep("customer")}
       />
     );
   if (step === "address")
@@ -465,8 +504,17 @@ export default function CardapioPublico() {
       <AddressPage
         value={address}
         onChange={setAddress}
-        onBack={() => setStep("fulfillment")}
-        onContinue={() => setStep("customer")}
+        previousAddress={previousAddress}
+        onUsePreviousAddress={() => {
+          if (previousAddress) setAddress(previousAddress);
+          setPreviousAddress(null);
+        }}
+        onEnterAnotherAddress={() => {
+          setAddress(emptyAddress);
+          setPreviousAddress(null);
+        }}
+        onBack={() => setStep("customer")}
+        onContinue={() => setStep("payment")}
       />
     );
   if (step === "customer")
@@ -474,10 +522,8 @@ export default function CardapioPublico() {
       <CustomerPage
         value={customer}
         onChange={setCustomer}
-        onBack={() =>
-          setStep(fulfillment === "delivery" ? "address" : "fulfillment")
-        }
-        onContinue={() => setStep("payment")}
+        onBack={() => setStep("fulfillment")}
+        onContinue={() => void continueFromCustomer()}
       />
     );
   if (step === "payment")
@@ -485,7 +531,9 @@ export default function CardapioPublico() {
       <PaymentPage
         value={payment}
         onChange={setPayment}
-        onBack={() => setStep("customer")}
+        onBack={() =>
+          setStep(fulfillment === "delivery" ? "address" : "customer")
+        }
         onContinue={() => setStep("review")}
       />
     );

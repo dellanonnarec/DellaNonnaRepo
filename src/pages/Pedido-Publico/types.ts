@@ -49,6 +49,7 @@ export type DeliveryAddress = {
   numero: string;
   complemento: string;
   bairro: string;
+  cidade: string;
   referencia: string;
 };
 
