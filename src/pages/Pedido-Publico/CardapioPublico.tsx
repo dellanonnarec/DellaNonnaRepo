@@ -91,6 +91,10 @@ function readCart(): CartItem[] {
 export default function CardapioPublico() {
   const navigate = useNavigate();
   const location = useLocation();
+  const getTrackingCodeFromHash = () =>
+    typeof window === "undefined"
+      ? ""
+      : window.location.hash.slice(1).trim().toUpperCase();
   const routeState = location.state as {
     categoryId?: string;
     openCart?: boolean;
@@ -99,7 +103,9 @@ export default function CardapioPublico() {
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>(readCart);
-  const [step, setStep] = useState<Step>("menu");
+  const [step, setStep] = useState<Step>(
+    getTrackingCodeFromHash() ? "confirmed" : "menu",
+  );
   const [activeCategory, setActiveCategory] = useState("Todas");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -120,6 +126,12 @@ export default function CardapioPublico() {
     number | null
   >(null);
   const [confirmedTotal, setConfirmedTotal] = useState(0);
+  const [trackingCode, setTrackingCode] = useState(getTrackingCodeFromHash);
+  const [trackingStatus, setTrackingStatus] = useState<string | null>(null);
+  const [trackingLoading, setTrackingLoading] = useState(
+    Boolean(getTrackingCodeFromHash()),
+  );
+  const [trackingError, setTrackingError] = useState("");
   const [selectedPizza, setSelectedPizza] = useState<MenuItem | null>(null);
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
   const [pizzaQuantity, setPizzaQuantity] = useState(1);
@@ -233,6 +245,59 @@ export default function CardapioPublico() {
     );
     if (category) setActiveCategory(category.id);
   }, [location.pathname, location.state, categories, items, navigate]);
+
+  useEffect(() => {
+    const code = location.hash.slice(1).trim().toUpperCase();
+    if (!code) return;
+
+    let active = true;
+    setTrackingCode(code);
+    setStep("confirmed");
+    setTrackingLoading(true);
+    setTrackingError("");
+
+    const loadOrder = async () => {
+      if (!publicSupabase) {
+        if (active) {
+          setTrackingError("O serviço de acompanhamento não está configurado.");
+          setTrackingLoading(false);
+        }
+        return;
+      }
+
+      const { data, error: lookupError } = await publicSupabase.rpc(
+        "buscar_pedido_publico_por_codigo",
+        { p_codigo: code },
+      );
+      if (!active) return;
+      if (lookupError) {
+        console.error("Falha ao consultar acompanhamento do pedido:", lookupError);
+        setTrackingError("Não foi possível carregar este pedido. Tente novamente.");
+        setTrackingLoading(false);
+        return;
+      }
+
+      const order = Array.isArray(data) ? data[0] : data;
+      if (!order) {
+        setTrackingError("Não encontramos um pedido com este código.");
+        setTrackingLoading(false);
+        return;
+      }
+
+      setConfirmedOrderNumber(Number(order.order_number));
+      setConfirmedTotal(Number(order.order_total));
+      setTrackingStatus(order.order_status);
+      setTrackingLoading(false);
+      setTrackingError("");
+    };
+
+    void loadOrder();
+    const interval = window.setInterval(() => void loadOrder(), 15000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [location.hash]);
 
   const borderItems = useMemo(
     () =>
@@ -369,7 +434,7 @@ export default function CardapioPublico() {
     };
     try {
       const { data, error: orderError } = await supabase.rpc(
-        "registrar_pedido_publico",
+        "registrar_pedido_publico_com_acompanhamento",
         {
           p_pedido: orderPayload,
           p_itens: cart.map((item) => ({
@@ -389,8 +454,13 @@ export default function CardapioPublico() {
         result?.order_number == null ? null : Number(result.order_number),
       );
       setConfirmedTotal(Number(result?.order_total ?? subtotal + fee));
+      setTrackingCode(result?.tracking_code ?? "");
+      setTrackingStatus("recebido");
       setCart([]);
       setStep("confirmed");
+      if (result?.tracking_code) {
+        navigate(`${location.pathname}#${result.tracking_code}`, { replace: true });
+      }
     } catch (cause) {
       console.error("Falha ao finalizar pedido:", cause);
       setError(
@@ -557,6 +627,10 @@ export default function CardapioPublico() {
       <OrderConfirmedPage
         orderNumber={confirmedOrderNumber}
         total={confirmedTotal}
+        trackingCode={trackingCode}
+        status={trackingStatus}
+        loading={trackingLoading}
+        error={trackingError}
         onHome={() => navigate("/pedido")}
       />
     );

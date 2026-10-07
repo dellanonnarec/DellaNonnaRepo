@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   ArrowRight,
@@ -8,6 +8,8 @@ import {
   Menu,
   ShoppingCart,
   Flame,
+  Plus,
+  Search,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { publicSupabase } from "../../lib/supabase";
@@ -59,72 +61,132 @@ const categoryImages: Record<string, string> = {
   Bebidas: "/bebida.jpg",
 };
 
+const normalizeText = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+const formatPrice = (value: number) =>
+  value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
 export default function Pedido() {
-  const navigate = useNavigate();
   const [categories, setCategories] = useState<MenuCategory[]>([]);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const navigate = useNavigate();
   const [featured, setFeatured] = useState<MenuItem[]>([]);
   const [cartCount, setCartCount] = useState(readCartCount);
+    const [activeCategory, setActiveCategory] = useState("Todas");
+  const [search, setSearch] = useState("");
+   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
-    const loadFeatured = async () => {
-      if (!publicSupabase) return;
-      const [categoriesResult, itemsResult] = await Promise.all([
-        publicSupabase
+
+    const load = async () => {
+      setLoading(true);
+      setError("");
+
+      if (!publicSupabase) {
+        setError("O serviço de pedidos não está configurado.");
+        setLoading(false);
+        return;
+      }
+
+      const supabase = publicSupabase;
+
+      const [categoryResult, itemResult] = await Promise.all([
+        supabase
           .from("categorias_cardapio")
           .select("id,nome,ordem,ativa")
           .eq("ativa", true)
           .order("ordem"),
-        publicSupabase
+
+        supabase
           .from("cardapio_itens")
           .select(
             "id,nome_comercial,descricao,categoria_id,tamanho,imagem_url,preco_venda,destaque,disponivel,ordem_exibicao,origem_tipo,receita_id,insumo_id",
           )
           .eq("disponivel", true)
-          .eq("destaque", true)
-          .order("ordem_exibicao")
-          .limit(30),
+          .order("ordem_exibicao"),
       ]);
+
       if (!active) return;
-      if (categoriesResult.error) {
+
+      if (categoryResult.error || itemResult.error) {
         console.error(
-          "Falha ao carregar categorias do cardápio:",
-          categoriesResult.error,
+          "Falha ao carregar o cardápio público:",
+          categoryResult.error ?? itemResult.error,
         );
+
+        setError(
+          "Não foi possível carregar o cardápio. Tente novamente em instantes.",
+        );
+
+        setLoading(false);
         return;
       }
 
-      const visibleCategories = (categoriesResult.data ?? []).filter(
+      /*
+       * Remove categorias que não devem aparecer
+       * no cardápio público.
+       */
+      const categoryRows = (categoryResult.data ?? []).filter(
         (category) => !isAddonCategory(category.nome),
-      );
-      setCategories(visibleCategories as MenuCategory[]);
-      if (itemsResult.error) {
-        console.error(
-          "Falha ao carregar itens em destaque:",
-          itemsResult.error,
-        );
-        return;
-      }
+      ) as MenuCategory[];
 
-      const categoryNames = new Map(
-        visibleCategories.map((category) => [category.id, category.nome]),
+      const categoryById = new Map(
+        categoryRows.map((category) => [category.id, category]),
       );
-      const items = (itemsResult.data ?? []).flatMap((row: any) => {
-        const category = categoryNames.get(row.categoria_id);
-        if (!category || isAddonCategory(category)) return [];
-        return [
-          {
-            ...row,
-            categoria: category,
-            preco_venda: Number(row.preco_venda ?? 0),
-            destaque: Boolean(row.destaque),
-          } as MenuItem,
-        ];
-      });
-      setFeatured(items.slice(0, 8));
+
+      const loadedItems: MenuItem[] = (itemResult.data ?? []).flatMap(
+        (row: any) => {
+          const category = categoryById.get(row.categoria_id);
+
+          if (!category) return [];
+
+          return [
+            {
+              id: row.id,
+              nome_comercial: row.nome_comercial,
+              descricao: row.descricao,
+              categoria_id: row.categoria_id,
+              categoria: category.nome,
+              tamanho: row.tamanho,
+              imagem_url: row.imagem_url,
+              preco_venda: Number(row.preco_venda ?? 0),
+              destaque: Boolean(row.destaque),
+              disponivel: Boolean(row.disponivel),
+              ordem_exibicao: Number(row.ordem_exibicao ?? 1),
+              origem_tipo: row.origem_tipo,
+              receita_id: row.receita_id ?? null,
+              insumo_id: row.insumo_id ?? null,
+            },
+          ];
+        },
+      );
+
+      if (!active) return;
+
+      setCategories(categoryRows);
+      setItems(loadedItems);
+      setLoading(false);
+
+      /*
+       * A primeira categoria vira a categoria selecionada
+       * inicialmente.
+       */
+      if (categoryRows.length > 0) {
+        setActiveCategory((current) => current ?? categoryRows[0].id);
+      }
     };
 
-    void loadFeatured();
+    void load();
+
     return () => {
       active = false;
     };
@@ -146,15 +208,81 @@ export default function Pedido() {
     });
   };
 
-  return (
-    <main className="min-h-screen bg-[#F8F4E8] font-sans">
-      {/* Header */}
-      <header className="mx-auto relative z-50 flex max-w-6xl items-center justify-between pt-2 px-5 sm:px-8 bg-[#F8F4E8]">
+   const filteredItems = useMemo(() => {
+    const normalizedSearch = normalizeText(search.trim());
+
+    return items.filter((item) => {
+      const matchesCategory =
+        !activeCategory || item.categoria_id === activeCategory;
+
+      if (!matchesCategory) return false;
+
+      if (!normalizedSearch) return true;
+
+      const searchableText = normalizeText(
+        [
+          item.nome_comercial,
+          item.descricao ?? "",
+          item.categoria,
+        ].join(" "),
+      );
+
+      return searchableText.includes(normalizedSearch);
+    });
+  }, [items, activeCategory, search]);
+
+   const visibleCategories = useMemo(() => {
+    return categories.filter((category) => !isAddonCategory(category.nome));
+  }, [categories]);
+  
+    const groupedItems = useMemo(() => {
+    const groups = new Map<string, MenuItem[]>();
+
+    visibleCategories.forEach((category) => {
+      groups.set(category.id, []);
+    });
+
+    filteredItems.forEach((item) => {
+      const current = groups.get(item.categoria_id);
+
+      if (current) {
+        current.push(item);
+      } else {
+        groups.set(item.categoria_id, [item]);
+      }
+    });
+
+    return visibleCategories
+      .map((category) => ({
+        category,
+        items: groups.get(category.id) ?? [],
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [filteredItems, visibleCategories]);
+
+    const getProductBadge = (item: MenuItem) => {
+    if (item.destaque) {
+      return "MAIS PEDIDA";
+    }
+
+    if (normalizeText(item.nome_comercial).includes("parma")) {
+      return "DA NONNA";
+    }
+
+    return null;
+  };
+
+   return (
+    <main className="min-h-screen bg-[#F8F4E8] font-sans text-[#295727]">
+      {/* ======================================================
+          HEADER
+      ====================================================== */}
+      <header className="relative z-50 mx-auto flex max-w-6xl items-center justify-between bg-[#F8F4E8] px-5 pb-3 pt-2 sm:px-8">
         <div className="leading-none">
           <img
-            src="/logo.png"
-            alt=""
-            className="h-auto w-[clamp(90px,12vw,140px)]"
+            src="/logo2.png"
+            alt="Della Nonna"
+            className="h-auto w-[clamp(140px,16vw,180px)]"
           />
         </div>
 
@@ -162,238 +290,243 @@ export default function Pedido() {
           <button
             type="button"
             aria-label="Carrinho"
-            onClick={() =>
-              navigate("/pedido/cardapio", { state: { openCart: true } })
-            }
-            className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-secondary"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#dcd4bd] text-[#295727] transition-colors hover:bg-[#F0E9D6]"
           >
-            <ShoppingCart className="h-5 w-5" strokeWidth={1.6} />
+            <ShoppingCart
+              className="h-5 w-5"
+              strokeWidth={1.6}
+            />
+
             {cartCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold leading-none text-accent-foreground">
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#B51E24] px-1 text-[10px] font-bold leading-none text-white">
                 {cartCount > 99 ? "99+" : cartCount}
               </span>
             )}
           </button>
-          <button
-            type="button"
-            aria-label="Menu"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-secondary"
-          >
-            <Menu className="h-6 w-6" strokeWidth={1.6} />
-          </button>
         </nav>
       </header>
 
-      {/* Banner */}
-      <section className="relative bottom-[40px] isolate h-[26rem] w-full overflow-hidden sm:h-[30rem] lg:h-[34rem]">
+      {/* ======================================================
+          BANNER
+      ====================================================== */}
+      <section className="relative mx-5 h-[18rem] overflow-hidden rounded-2xl sm:mx-8 lg:mx-auto lg:max-w-6xl">
         <img
           src="/banner1.png"
           alt="Pizza artesanal com manjericão fresco"
-          width={1408}
-          height={1200}
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
 
-        <BannerWaves />
-
         <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-5 sm:px-8">
-          <p className="max-w-[16rem] text-[clamp(8px,1.5vw,12px)] uppercase leading-relaxed tracking-[0.25em] text-primary-foreground/80">
-            Sabor, tradição e <br /> qualidade em todo pedido.
+          <p className="max-w-[16rem] text-[clamp(8px,1.5vw,12px)] uppercase leading-relaxed tracking-[0.25em] text-white/80">
+            Sabor, tradição e
+            <br />
+            qualidade em todo pedido.
           </p>
-          <span className="h-px w-8 bg-accent/100 mt-2" />
-          <h1 className="mt-3 font-display font-bold text-4xl leading-[1.05] text-primary-foreground sm:text-5xl lg:text-6xl">
+
+          <span className="mt-2 h-px w-8 bg-[#EB662E]" />
+
+          <h1 className="mt-3 font-display text-4xl font-bold leading-[1.05] text-white sm:text-5xl lg:text-6xl">
             Pizza feita
-            <span className=" font-bold block italic text-accent">
+            <span className="block font-bold italic text-[#EB662E]">
               com carinho.
             </span>
           </h1>
-
-          <a
-            href="#cardapio"
-            className="mt-4 inline-flex w-fit items-center gap-4 rounded-full border border-primary-foreground/25 py-1 pl-2 pr-6 transition-colors hover:border-primary-foreground/50"
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-accent-foreground">
-              <ArrowRight className="h-5 w-5" strokeWidth={2} />
-            </span>
-            <span className="text-[0.7rem] uppercase leading-relaxed tracking-[0.2em] text-primary-foreground">
-              Peça agora
-              <br />e sinta o sabor
-            </span>
-          </a>
         </div>
       </section>
 
-      {/* Cardápio intro */}
+      {/* ======================================================
+          CARDÁPIO
+      ====================================================== */}
       <section
         id="cardapio"
-        className="mx-auto relative bottom-[120px] flex max-w-6xl flex-wrap items-end justify-between gap-6 pl-6 pr-6 py-12 sm:px-8"
+        className="mx-auto max-w-6xl px-5 pb-20 pt-10 sm:px-8"
       >
-        <div className="flex flex-row justify-between w-full">
-          <div>
-            <p className="flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.25em] text-muted-foreground">
-              Nosso cardápio
-              <span className="h-[2px] w-8 bg-accent/100" />
-            </p>
-            <h2 className=" font-display text-3xl font-bold  text-foreground sm:text-4xl">
-              Escolha o seu
-              <span className=" block italic text-accent">favorito.</span>
-            </h2>
-          </div>
-          <a
-            href="#cardapio"
-            className="flex items-center justify-center-safe text-sm font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            Ver todos
-            <ArrowRight className="h-4 w-4" strokeWidth={2} />
-          </a>
+        {/* Cabeçalho */}
+        <div className="mb-6">
+          <p className="flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-[0.25em] text-[#829078]">
+            Nosso cardápio
+            <span className="h-[2px] w-8 bg-[#EB662E]" />
+          </p>
         </div>
-      </section>
-      <nav
-        aria-label="Categorias do cardápio"
-        className="mt-3 grid gap-2 sm:mt-6 sm:gap-3 relative bottom-[160px] pl-6 pr-6"
-      >
-        {categories.map((category) => {
-          const image = categoryImages[category.nome];
 
-          return (
-            <button
-              key={category.id}
-              onClick={() => openMenu(category.id)}
-              className="group relative isolate cursor-pointer h-[95px] max-w-[1233px] mx-auto w-full overflow-hidden rounded-xl border border-border/60 bg-[#F8F4E8] text-left shadow-sm sm:h-28"
-            >
-              {image && (
-                <img
-                  src={image}
-                  alt={category.nome}
-                  loading="lazy"
-                  width={1024}
-                  height={768}
-                  className="absolute inset-0 h-full w-full object-cover object-[center_46%] transition-transform duration-300 group-hover:scale-[1.03] sm:object-[center_52%]"
-                />
-              )}
+        {/* ====================================================
+            BUSCA
+        ==================================================== */}
+        <div className="relative">
+          <Search
+            size={17}
+            strokeWidth={1.7}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#60705E]"
+          />
 
-              {/* DIVISOR / DEGRADÊ */}
-              <div
-                className="pointer-events-none absolute inset-0 z-10"
-                style={{
-                  background: `
-                     linear-gradient(
-                       90deg,
-                       #F8F4E8 0%,
-                       #F8F4E8 34%,
-                       rgba(245,237,217,0.98) 42%,
-                       rgba(245,237,217,0.92) 48%,
-                       rgba(245,237,217,0.75) 55%,
-                       rgba(245,237,217,0.52) 61%,
-                       rgba(245,237,217,0.30) 67%,
-                       rgba(245,237,217,0.12) 74%,
-                       rgba(245,237,217,0) 82%
-                     )
-                   `,
-                }}
-                aria-hidden="true"
-              />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Buscar sabor ou ingrediente"
+            type="search"
+            className="h-[46px] w-full rounded-full border border-[#DED7C4] bg-[#FBF8EF] pl-11 pr-5 text-[14px] text-[#295727] outline-none transition placeholder:text-[#71806F] focus:border-[#295727]"
+          />
+        </div>
 
-              <div className="relative z-20 flex h-full flex-col justify-center px-3 sm:px-6">
-                {category.nome.toLowerCase().includes("pizza") ? (
-                  <>
-                    <p className="text-[8px] font-bold uppercase tracking-[0.19em] text-accent sm:text-[11px]">
-                      Pizzas
-                    </p>
+        {/* ====================================================
+            ABAS
+        ==================================================== */}
+        <div className="-mx-5 mt-5 overflow-x-auto border-b border-[#DDD6C4] px-5 sm:-mx-8 sm:px-8">
+          <div className="flex min-w-max items-end gap-7">
+            {visibleCategories.map((category) => {
+              const isActive = activeCategory === category.id;
 
-                    <h3 className="font-display text-xl font-bold leading-none text-foreground sm:text-3xl">
-                      {category.nome.replace(/pizzas?/i, "").trim()}
-                    </h3>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.19em] text-accent sm:text-[11px]">
-                      PARA ACOMPANHAR
-                    </p>
-
-                    <h3 className="font-display text-xl font-bold leading-none text-foreground sm:text-3xl">
-                      {category.nome}
-                    </h3>
-                  </>
-                )}
-
-                <ArrowRight
-                  aria-hidden="true"
-                  className="mt-1 h-3.5 w-3.5 text-accent transition-transform duration-300 group-hover:translate-x-1 sm:mt-2 sm:h-5 sm:w-5"
-                  strokeWidth={1.5}
-                />
-              </div>
-            </button>
-          );
-        })}
-      </nav>
-      {featured.length > 0 && (
-        <section className="relative bottom-[140px] mx-auto mt-3 w-full max-w-[1233px]  sm:mt-8 pl-6 pr-6">
-          <div className="mx-auto w-full max-w-[1233px]">
-            {/* Título */}
-            <div className="mb-[clamp(0.75rem,1.5vw,1.25rem)] flex items-center gap-[clamp(0.5rem,1vw,0.875rem)]">
-              <span className="font-bold uppercase leading-none tracking-[clamp(0.16em,0.35vw,0.28em)] text-[clamp(0.75rem,1.5vw,1.1rem)] text-foreground">
-                Mais pedidos
-              </span>
-
-              <span className="h-px w-[clamp(2rem,4vw,3rem)] shrink-0 bg-accent" />
-            </div>
-
-            {/* Cards */}
-            <div className="grid w-full grid-cols-2 justify-center gap-2 sm:gap-4">
-              {featured.map((item) => (
+              return (
                 <button
-                  key={item.id}
-                  onClick={() =>
-                    navigate("/pedido/cardapio", {
-                      state: { selectedItemId: item.id },
-                    })
-                  }
-                  className="group w-full min-w-0 max-w-[620px] justify-self-center overflow-hidden rounded-lg border border-border/60 bg-card text-left shadow-sm"
+                  key={category.id}
+                  type="button"
+                  onClick={() => setActiveCategory(category.id)}
+                  className={[
+                    "relative pb-3 pt-1 text-[14px] transition-colors",
+                    isActive
+                      ? "font-medium text-[#B51E24]"
+                      : "text-[#60705E] hover:text-[#295727]",
+                  ].join(" ")}
                 >
-                  <div className="relative h-[clamp(140px,22vw,280px)] w-full overflow-hidden">
-                    <img
-                      src={item.imagem_url || "/bannerPizza.jpg"}
-                      alt={item.nome_comercial}
-                      loading="lazy"
-                      width={1024}
-                      height={768}
-                      className="h-full w-full object-cover object-center"
-                    />
+                  {category.nome}
 
-                    <span
-                      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-accent-foreground sm:right-3 sm:top-3 sm:h-8 sm:w-8"
-                      aria-label="Mais pedido"
-                    >
-                      <Flame className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" />
-                    </span>
-                  </div>
-
-                  <div className="px-[clamp(0.5rem,1.5vw,1rem)] pb-[clamp(0.5rem,1.5vw,1rem)] pt-[clamp(0.375rem,1vw,0.75rem)]">
-                    <h3 className="font-display text-[clamp(0.85rem,1.8vw,1.25rem)] font-bold leading-[1.1] text-foreground">
-                      {item.nome_comercial}
-                    </h3>
-
-                    <p className="mt-[clamp(0.25rem,0.6vw,0.5rem)] truncate text-[clamp(0.6rem,1.2vw,0.875rem)] text-muted-foreground">
-                      {item.descricao || "Massa artesanal, feita na hora."}
-                    </p>
-
-                    <div className="mt-[clamp(0.5rem,1vw,0.75rem)] flex items-end justify-between gap-2">
-                      <span className="text-[clamp(0.75rem,1.5vw,1.125rem)] font-bold text-accent">
-                        {money(item.preco_venda)}
-                      </span>
-
-                      <span className="flex h-[clamp(1.5rem,3vw,2.25rem)] w-[clamp(1.5rem,3vw,2.25rem)] shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground transition-transform duration-300 group-hover:translate-x-1">
-                        <ArrowRight className="h-[clamp(0.75rem,1.5vw,1rem)] w-[clamp(0.75rem,3vw,1rem)]" />
-                      </span>
-                    </div>
-                  </div>
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 h-[2px] w-full bg-[#B51E24]" />
+                  )}
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        </section>
-      )}
+        </div>
+
+        {/* ====================================================
+            ESTADO DE CARREGAMENTO
+        ==================================================== */}
+        {loading && (
+          <div className="py-16 text-center">
+            <p className="text-sm text-[#71806F]">
+              Carregando cardápio...
+            </p>
+          </div>
+        )}
+
+        {/* ====================================================
+            ERRO
+        ==================================================== */}
+        {!loading && error && (
+          <div className="py-16 text-center">
+            <p className="text-sm text-[#B51E24]">
+              {error}
+            </p>
+          </div>
+        )}
+
+        {/* ====================================================
+            PRODUTOS
+        ==================================================== */}
+        {!loading && !error && (
+          <div className="mt-8">
+            {groupedItems.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="font-display text-2xl italic text-[#295727]">
+                  Nenhum produto encontrado.
+                </p>
+
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="mt-3 text-sm text-[#B51E24] underline underline-offset-4"
+                  >
+                    Limpar busca
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-12">
+                {groupedItems.map(({ category, items: categoryItems }) => (
+                  <section key={category.id}>
+                    {/* Nome da categoria */}
+                    <h2 className="mb-6 font-display text-[26px] italic leading-none text-[#295727]">
+                      {category.nome}
+                    </h2>
+
+                    {/* Produtos */}
+                    <div>
+                      {categoryItems.map((item, index) => {
+                        const badge = getProductBadge(item);
+
+                        return (
+                          <article
+                            key={item.id}
+                            className={[
+                              "relative flex min-h-[128px] items-center gap-4 py-4",
+                              index !== categoryItems.length - 1
+                                ? "border-b border-[#DDD6C4]"
+                                : "",
+                            ].join(" ")}
+                          >
+                            {/* Conteúdo */}
+                            <div className="min-w-0 flex-1 pr-1">
+                              {badge && (
+                                <p className="mb-1 text-[9px] font-medium uppercase tracking-[0.18em] text-[#EB662E]">
+                                  {badge}
+                                </p>
+                              )}
+
+                              <h3 className="font-display text-[18px] font-semibold leading-tight text-[#295727]">
+                                {item.nome_comercial}
+                              </h3>
+
+                              {item.descricao && (
+                                <p className="mt-1 text-[14px] leading-[1.45] text-[#60705E]">
+                                  {item.descricao}
+                                </p>
+                              )}
+
+                              <p className="mt-2 text-[13px] text-[#60705E]">
+                                a partir de{" "}
+                                <span className="font-medium text-[#B51E24]">
+                                  {formatPrice(item.preco_venda)}
+                                </span>
+                              </p>
+                            </div>
+
+                            {/* Imagem + botão */}
+                            <div className="relative mr-0 h-[94px] w-[94px] shrink-0 sm:h-[100px] sm:w-[100px]">
+                              {item.imagem_url ? (
+                                <img
+                                  src={item.imagem_url}
+                                  alt={item.nome_comercial}
+                                  className="h-full w-full rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-full w-full rounded-full bg-[#E7DFCB]" />
+                              )}
+
+                              <button
+                                type="button"
+                                aria-label={`Adicionar ${item.nome_comercial}`}
+                               
+                                className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#B51E24] text-white shadow-sm transition-transform hover:scale-105 active:scale-95"
+                              >
+                                <Plus
+                                  size={19}
+                                  strokeWidth={1.8}
+                                />
+                              </button>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
     </main>
   );
 }

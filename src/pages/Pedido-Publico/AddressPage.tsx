@@ -273,6 +273,10 @@ export default function AddressPage({
                         <MapIcon size={19} strokeWidth={1.8} />
                       )}
 
+                      {key === "cidade" && (
+                        <MapPin size={19} strokeWidth={1.8} />
+                      )}
+
                       {key === "referencia" && (
                         <Star size={19} strokeWidth={1.8} />
                       )}
