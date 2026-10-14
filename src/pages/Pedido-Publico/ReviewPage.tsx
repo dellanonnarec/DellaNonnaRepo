@@ -49,7 +49,7 @@ export default function ReviewPage({
           className="grid size-10 shrink-0 place-items-center rounded-full
       text-[#315c40] transition-colors hover:bg-[#f0ead3] sm:size-11"
         >
-          <ArrowLeft className="size-[19px] sm:size-5" />
+          <ArrowLeft className="size-4.75 sm:size-5" />
         </button>
 
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -64,7 +64,7 @@ export default function ReviewPage({
       {/* CONTEÚDO */}
       <div className="relative mx-auto w-full max-w-xl px-4 pb-16 pt-5 sm:px-6 sm:pb-24 sm:pt-6">
         {/* STEPPER */}
-        <div className="mx-auto flex w-full max-w-[300px] items-center">
+        <div className="mx-auto flex w-full max-w-75 items-center">
           {/* Etapa 1 */}
           <div className="relative flex flex-1 items-center">
             <div className="z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#b52327] text-[10px] font-semibold text-white">
@@ -214,7 +214,7 @@ export default function ReviewPage({
         {error && (
           <p
             role="alert"
-            className="mt-4 rounded-[12px] border border-red-100 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
+            className="mt-4 rounded-xl border border-red-100 bg-red-50 p-4 text-sm leading-relaxed text-red-700"
           >
             {error}
           </p>
@@ -226,7 +226,7 @@ export default function ReviewPage({
             type="button"
             disabled={busy || !items.length}
             onClick={onConfirm}
-            className="mt-7 flex h-12 w-full max-w-[300px] items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 text-base font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-[17px]"
+            className="mt-7 flex h-12 w-full max-w-75 items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 text-base font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-[17px]"
           >
             <span>{busy ? "Enviando pedido…" : "Confirmar pedido"}</span>
           </button>

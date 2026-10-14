@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Minus,
   Plus,
-  ShoppingCart,
   Trash2,
 } from "lucide-react";
 import { type CartItem, cartItemTotal, cartSubtotal, money } from "./types";
@@ -23,7 +22,7 @@ export default function CartPage({
   onChangeQuantity,
   onRemove,
 }: Props) {
-  const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
   const subtotal = cartSubtotal(items);
   return (
     <main className=" min-h-screen bg-[#F8F4E8] px-4 pb-28 pt-6 text-[#295727] sm:px-8">
@@ -35,7 +34,7 @@ export default function CartPage({
           className="grid size-10 shrink-0 place-items-center rounded-full
              text-[#315c40] transition-colors hover:bg-[#f0ead3] sm:size-11"
         >
-          <ArrowLeft className="size-[19px] sm:size-5" />
+          <ArrowLeft className="size-4.75 sm:size-5" />
         </button>
 
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -46,20 +45,7 @@ export default function CartPage({
           />
         </div>
 
-        <nav className="ml-auto flex items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            aria-label="Carrinho"
-            className="relative flex size-10 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-secondary sm:size-11"
-          >
-            <ShoppingCart className="size-[19px] sm:size-5" strokeWidth={1.6} />
-            {cartCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold leading-none text-accent-foreground">
-                {cartCount > 99 ? "99+" : cartCount}
-              </span>
-            )}
-          </button>
-        </nav>
+
       </header>
       <div className="mx-auto w-full max-w-xl px-4 pt-5 pb-8 sm:px-6">
         <div>
@@ -67,9 +53,6 @@ export default function CartPage({
             Seu carrinho
           </h1>
 
-          <span className="mt-1 block text-sm text-[#155b3b]">
-            Confira seus itens antes de pedir
-          </span>
         </div>
 
         {items.length === 0 ? (
@@ -118,7 +101,7 @@ export default function CartPage({
                       )}
 
                       {item.observation && (
-                        <p className="mt-1 break-words text-xs text-[#71826a]">
+                        <p className="mt-1 wrap-break-word text-xs text-[#71826a]">
                           Observação: {item.observation}
                         </p>
                       )}
@@ -180,7 +163,7 @@ export default function CartPage({
           <button
             disabled={!items.length}
             onClick={onContinue}
-            className="mt-5 flex h-12 w-full max-w-[300px] items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 font-semibold text-[#fff9df] transition-colors hover:bg-[#99191e] disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-5 flex h-12 w-full max-w-75 items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 font-semibold text-[#fff9df] transition-colors hover:bg-[#99191e] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Confirmar pedido
             <ArrowRight size={20} />

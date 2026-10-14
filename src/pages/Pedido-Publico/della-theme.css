@@ -6,7 +6,8 @@
  * Requer o plugin @tailwindcss/vite (padrão do Tailwind v4 com Vite).
  */
 @import "tailwindcss";
-@theme {
+
+:root {
   /* Fontes (carregadas via <link> no index.html — ver README) */
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Playfair Display", ui-serif, Georgia, serif;
@@ -69,15 +70,7 @@
   }
 }
 
-@utility animate-wave-top {
-  animation: wave-top-morph 22s ease-in-out infinite;
-  will-change: d;
-}
 
-@utility animate-wave-bottom {
-  animation: wave-bottom-morph 31s ease-in-out infinite;
-  will-change: d;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .animate-wave-top,

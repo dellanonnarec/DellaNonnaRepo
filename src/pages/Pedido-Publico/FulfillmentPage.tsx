@@ -5,6 +5,7 @@ type Props = {
   onBack: () => void;
   onChoose: (value: "delivery" | "retirada") => void;
   onContinue: () => void;
+  embedded?: boolean;
 };
 
 export default function FulfillmentPage({
@@ -12,7 +13,33 @@ export default function FulfillmentPage({
   onBack,
   onChoose,
   onContinue,
+  embedded = false,
 }: Props) {
+  const choices = [
+    ["delivery", "Entrega"],
+    ["retirada", "Retirar na loja"],
+  ] as const;
+
+  if (embedded) {
+    return (
+      <div className="rounded-full bg-[#eee9d8] p-1" aria-label="Forma de recebimento">
+        <div className="grid grid-cols-2 gap-1">
+          {choices.map(([id, title]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={value === id}
+              onClick={() => onChoose(id)}
+              className={`h-10 rounded-full px-3 text-sm transition ${value === id ? "bg-[#f8f4e8] text-[#b51e24] shadow-sm" : "text-[#526d58] hover:text-[#183f2c]"}`}
+            >
+              {title}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[F8F4E8]  text-[#295727] sm:px-8">
       <header
@@ -26,7 +53,7 @@ export default function FulfillmentPage({
           className="grid size-10 shrink-0 place-items-center rounded-full
              text-[#315c40] transition-colors hover:bg-[#f0ead3] sm:size-11"
         >
-          <ArrowLeft className="size-[19px] sm:size-5" />
+          <ArrowLeft className="size-4.75 sm:size-5" />
         </button>
 
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -39,7 +66,7 @@ export default function FulfillmentPage({
       </header>
       <div className="mx-auto w-full max-w-xl px-4 py-5 sm:px-6">
         {/* Indicador das etapas */}
-        <div className="mx-auto flex w-full max-w-[300px] items-center">
+        <div className="mx-auto flex w-full max-w-75 items-center">
           {/* Etapa 1 */}
           <div className="relative flex flex-1 items-center">
             <div className="z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#b52327] text-[10px] font-semibold text-white">
@@ -132,7 +159,7 @@ export default function FulfillmentPage({
           <button
             disabled={!value}
             onClick={onContinue}
-            className="mt-5 flex h-12 w-full max-w-[300px] items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 font-semibold text-[#fff9df] transition-colors hover:bg-[#99191e] disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-5 flex h-12 w-full max-w-75 items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 font-semibold text-[#fff9df] transition-colors hover:bg-[#99191e] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Continuar Pedido
             <ArrowLeft className="rotate-180" size={20} />

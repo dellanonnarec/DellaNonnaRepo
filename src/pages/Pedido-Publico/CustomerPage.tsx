@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, Phone, User } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Customer } from "./types";
 
 const fullNamePattern = /^[\p{L}]+(?:[ -][\p{L}]+)+$/u;
@@ -18,21 +18,27 @@ type Props = {
   onChange: (value: Customer) => void;
   onBack: () => void;
   onContinue: () => void;
+  embedded?: boolean;
+  onValidityChange?: (valid: boolean) => void;
 };
 export default function CustomerPage({
   value,
   onChange,
   onBack,
   onContinue,
+  embedded = false,
+  onValidityChange,
 }: Props) {
   const [touched, setTouched] = useState({ name: false, whatsapp: false });
   const nameValid = fullNamePattern.test(value.name.trim());
   const whatsappValid = whatsappPattern.test(value.whatsapp.trim());
   const valid = nameValid && whatsappValid;
+  useEffect(() => onValidityChange?.(valid), [valid, onValidityChange]);
+  const Root = embedded ? "section" : "main";
   return (
-    <main className="min-h-screen overflow-hidden bg-[#F8F4E8] text-[#183f2c]">
+    <Root className={embedded ? "w-full text-[#183f2c]" : "min-h-screen overflow-hidden bg-[#F8F4E8] text-[#183f2c]"}>
       {/* HEADER */}
-      <header
+      {!embedded && <header
         className="relative z-50 mx-auto mt-5 flex w-full max-w-6xl
       items-center justify-between bg-[#F8F4E8] px-3 sm:px-6 md:px-8"
       >
@@ -43,7 +49,7 @@ export default function CustomerPage({
           className="grid size-10 shrink-0 place-items-center rounded-full
         text-[#315c40] transition-colors hover:bg-[#f0ead3] sm:size-11"
         >
-          <ArrowLeft className="size-[19px] sm:size-5" />
+          <ArrowLeft className="size-4.75 sm:size-5" />
         </button>
 
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -53,12 +59,12 @@ export default function CustomerPage({
             className="h-auto w-[clamp(200px,28vw,280px)]"
           />
         </div>
-      </header>
+      </header>}
 
       {/* CONTEÚDO */}
-      <div className="relative mx-auto w-full max-w-xl px-4 pb-16 pt-5 sm:px-6 sm:pb-24 sm:pt-6">
+      <div className={embedded ? "w-full" : "relative mx-auto w-full max-w-xl px-4 pb-16 pt-5 sm:px-6 sm:pb-24 sm:pt-6"}>
         {/* STEPPER */}
-        <div className="mx-auto flex w-full max-w-[300px] items-center">
+        {!embedded && <div className="mx-auto flex w-full max-w-75 items-center">
           {/* Etapa 1 */}
           <div className="relative flex flex-1 items-center">
             <div className="z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#b52327] text-[10px] font-semibold text-white">
@@ -90,10 +96,10 @@ export default function CustomerPage({
           <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#dfd5b8] bg-[#fdf8e8] text-[10px] font-medium text-[#8d876f]">
             4
           </div>
-        </div>
+        </div>}
 
         {/* TÍTULO */}
-        <div className="mb-5 mt-6">
+        {!embedded && <div className="mb-5 mt-6">
           <span
             className="text-[10px] font-bold tracking-wide
      text-[#B52327] sm:text-[11px]"
@@ -108,17 +114,17 @@ export default function CustomerPage({
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#71826a] sm:text-base">
             Informe seus dados para finalizar o pedido.
           </p>
-        </div>
+        </div>}
 
         {/* FORMULÁRIO */}
-        <div className="relative rounded-[20px] border border-[#e5d9b8] bg-[#fffbea] p-4 shadow-[0_12px_35px_rgba(88,72,30,0.06)] sm:p-6">
+        <div className={embedded ? "grid gap-3" : "relative rounded-[20px] border border-[#e5d9b8] bg-[#fffbea] p-4 shadow-[0_12px_35px_rgba(88,72,30,0.06)] sm:p-6"}>
           <div className="grid gap-5">
             {/* NOME */}
             <label className="block text-sm font-semibold text-[#183f2c]">
-              <span className="mb-2 block">Nome completo</span>
+              <span className={embedded ? "sr-only" : "mb-2 block"}>Nome completo</span>
 
               <div className="relative">
-                <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#526d58]">
+                <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#526d58] ${embedded ? "hidden" : ""}`}>
                   <User size={19} strokeWidth={1.8} />
                 </div>
 
@@ -136,8 +142,8 @@ export default function CustomerPage({
                       name: event.target.value,
                     })
                   }
-                  placeholder="Digite seu nome completo"
-                  className="h-11 w-full rounded-[12px] border border-[#dfd3b2] bg-[#fffdf5] pl-12 pr-3 text-sm font-normal text-[#315c40] outline-none transition placeholder:text-[#9b9b83] focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/10"
+                  placeholder={embedded ? "Nome completo" : "Digite seu nome completo"}
+                  className={`h-11 w-full border border-[#dfd3b2] bg-[#fffdf5] ${embedded ? "pl-4" : "pl-12"} pr-3 text-sm font-normal text-[#315c40] outline-none transition placeholder:text-[#9b9b83] focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/10 ${embedded ? "rounded-full" : "rounded-xl"}`}
                 />
               </div>
               {touched.name && !nameValid && (
@@ -150,10 +156,10 @@ export default function CustomerPage({
 
             {/* WHATSAPP */}
             <label className="block text-sm font-semibold text-[#183f2c]">
-              <span className="mb-2 block">WhatsApp</span>
+              <span className={embedded ? "sr-only" : "mb-2 block"}>WhatsApp</span>
 
               <div className="relative">
-                <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#526d58]">
+                <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#526d58] ${embedded ? "hidden" : ""}`}>
                   <Phone size={19} strokeWidth={1.8} />
                 </div>
 
@@ -172,8 +178,8 @@ export default function CustomerPage({
                       whatsapp: formatBrazilianPhone(event.target.value),
                     })
                   }
-                  placeholder="(00) 00000-0000"
-                  className="h-11 w-full rounded-[12px] border border-[#dfd3b2] bg-[#fffdf5] pl-12 pr-3 text-sm font-normal text-[#315c40] outline-none transition placeholder:text-[#9b9b83] focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/10"
+                  placeholder={embedded ? "WhatsApp" : "(00) 00000-0000"}
+                  className={`h-11 w-full border border-[#dfd3b2] bg-[#fffdf5] ${embedded ? "pl-4" : "pl-12"} pr-3 text-sm font-normal text-[#315c40] outline-none transition placeholder:text-[#9b9b83] focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/10 ${embedded ? "rounded-full" : "rounded-xl"}`}
                 />
               </div>
               {touched.whatsapp && !whatsappValid && (
@@ -186,18 +192,18 @@ export default function CustomerPage({
           </div>
 
           {/* CONTINUAR */}
-          <div className="flex w-full justify-center">
+          {!embedded && <div className="flex w-full justify-center">
             <button
               disabled={!valid}
               onClick={onContinue}
-              className="mt-7 flex h-12 w-full max-w-[300px] items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 text-base font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-[17px]"
+              className="mt-7 flex h-12 w-full max-w-75 items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 text-base font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-[17px]"
             >
               <span>Continuar</span>
               <ArrowRight size={20} strokeWidth={1.8} />
             </button>
-          </div>
+          </div>}
         </div>
       </div>
-    </main>
+    </Root>
   );
 }

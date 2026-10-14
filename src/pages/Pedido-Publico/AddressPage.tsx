@@ -6,7 +6,6 @@ import {
   House,
   MapIcon,
   MapPin,
-  ShoppingCart,
   Star,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -20,6 +19,8 @@ type Props = {
   onEnterAnotherAddress: () => void;
   onBack: () => void;
   onContinue: () => void;
+  embedded?: boolean;
+  onValidityChange?: (valid: boolean) => void;
 };
 const fields: {
   key: keyof DeliveryAddress;
@@ -75,6 +76,8 @@ export default function AddressPage({
   onEnterAnotherAddress,
   onBack,
   onContinue,
+  embedded = false,
+  onValidityChange,
 }: Props) {
   const [cepLookupMessage, setCepLookupMessage] = useState("");
   const [touchedFields, setTouchedFields] = useState<
@@ -157,10 +160,12 @@ export default function AddressPage({
     return !fieldValue || addressPatterns[key].test(fieldValue);
   });
   const valid = requiredValuesPresent && allProvidedValuesValid;
+  useEffect(() => onValidityChange?.(valid), [valid, onValidityChange]);
+  const Root = embedded ? "section" : "main";
   return (
-    <main className="min-h-screen overflow-hidden bg-[#F8F4E8] text-[#183f2c]">
+    <Root className={embedded ? "w-full text-[#183f2c]" : "min-h-screen overflow-hidden bg-[#F8F4E8] text-[#183f2c]"}>
       {/* HEADER */}
-      <header
+      {!embedded && <header
         className="relative z-50 mx-auto flex w-full max-w-6xl mt-5 
       items-center justify-between bg-[#F8F4E8] px-3 sm:px-6 md:px-8"
       >
@@ -171,7 +176,7 @@ export default function AddressPage({
           className="grid size-10 shrink-0 place-items-center rounded-full
              text-[#315c40] transition-colors hover:bg-[#f0ead3] sm:size-11"
         >
-          <ArrowLeft className="size-[19px] sm:size-5" />
+          <ArrowLeft className="size-4.75 sm:size-5" />
         </button>
 
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -181,12 +186,12 @@ export default function AddressPage({
             className="h-auto w-[clamp(200px,28vw,280px)]"
           />
         </div>
-      </header>
+      </header>}
 
       {/* CONTEÚDO */}
-      <div className="relative mx-auto w-full max-w-xl px-4 pb-16 pt-5 sm:px-6 sm:pb-24 sm:pt-6">
+      <div className={embedded ? "w-full" : "relative mx-auto w-full max-w-xl px-4 pb-16 pt-5 sm:px-6 sm:pb-24 sm:pt-6"}>
         {/* STEPPER */}
-        <div className="mx-auto flex w-full max-w-[300px] items-center">
+        {!embedded && <div className="mx-auto flex w-full max-w-75 items-center">
           {/* Etapa 1 */}
           <div className="relative flex flex-1 items-center">
             <div className="z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#b52327] text-[10px] font-semibold text-white">
@@ -218,10 +223,10 @@ export default function AddressPage({
           <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#dfd5b8] bg-[#fdf8e8] text-[10px] font-medium text-[#8d876f]">
             4
           </div>
-        </div>
+        </div>}
 
         {/* TÍTULO */}
-        <div className="mb-5 mt-6">
+        {!embedded && <div className="mb-5 mt-6">
           <span className="text-[10px] font-bold tracking-wide text-[#B52327] sm:text-[11px]">
             SEU PEDIDO
           </span>
@@ -233,12 +238,12 @@ export default function AddressPage({
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#71826a] sm:text-base">
             Informe o seu endereço para que possamos entregar seu pedido.
           </p>
-        </div>
+        </div>}
 
         {/* FORMULÁRIO */}
-        <div className="relative rounded-[20px] border border-[#e5d9b8] bg-[#fffbea] p-4 shadow-[0_12px_35px_rgba(88,72,30,0.06)] sm:p-6">
-          <div className="grid gap-x-5 gap-y-2 sm:grid-cols-2">
-            {fields.map(({ key, label, required, className }) => {
+        <div className={embedded ? "w-full" : "relative rounded-[20px] border border-[#e5d9b8] bg-[#fffbea] p-4 shadow-[0_12px_35px_rgba(88,72,30,0.06)] sm:p-6"}>
+          <div className={embedded ? "grid grid-cols-2 gap-3" : "grid gap-x-5 gap-y-2 sm:grid-cols-2"}>
+            {(embedded ? fields.filter(({ key }) => key !== "cidade") : fields).map(({ key, label, required, className }) => {
               const fieldValue = value[key].trim();
 
               const hasError = Boolean(
@@ -250,15 +255,13 @@ export default function AddressPage({
               return (
                 <label
                   key={key}
-                  className={`block text-sm font-semibold text-[#183f2c] ${
-                    className ?? ""
-                  }`}
+                  className={`block min-w-0 text-sm font-semibold text-[#183f2c] ${embedded ? "" : className ?? ""}`}
                 >
-                  <span className="mb-2 block">{label}</span>
+                  <span className={embedded ? "sr-only" : "mb-2 block"}>{label}</span>
 
                   <div className="relative">
                     {/* Ícone */}
-                    <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#526d58]">
+                    <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#526d58] ${embedded ? "hidden" : ""}`}>
                       {key === "cep" && <MapPin size={19} strokeWidth={1.8} />}
 
                       {key === "rua" && <House size={19} strokeWidth={1.8} />}
@@ -315,7 +318,13 @@ export default function AddressPage({
                         }
                       }}
                       placeholder={
-                        key === "cep"
+                        embedded
+                          ? key === "rua"
+                            ? "Rua"
+                            : key === "numero"
+                              ? "Nº"
+                              : label
+                          : key === "cep"
                           ? "Digite seu CEP"
                           : key === "rua"
                             ? "Digite o nome da rua"
@@ -329,7 +338,7 @@ export default function AddressPage({
                                     ? "Digite a cidade"
                                     : "Ex.: Próximo ao mercado, escola, etc."
                       }
-                      className={`h-11 w-full rounded-[12px] border bg-[#fffdf5] pl-12 pr-3 text-sm font-normal text-[#315c40] outline-none transition placeholder:text-[#9b9b83] focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/10 ${
+                      className={`h-11 w-full ${embedded ? "rounded-full pl-4" : "rounded-xl pl-12"} border bg-[#fffdf5] pr-3 text-sm font-normal text-[#315c40] outline-none transition placeholder:text-[#9b9b83] focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/10 ${
                         hasError
                           ? "border-[#b51e24] focus:border-[#b51e24] focus:ring-[#b51e24]/10"
                           : "border-[#dfd3b2]"
@@ -355,29 +364,29 @@ export default function AddressPage({
           </div>
 
           {/* CONTINUAR */}
-          <div className="flex w-full justify-center">
+          {!embedded && <div className="flex w-full justify-center">
             <button
               disabled={!valid}
               onClick={onContinue}
-              className="mt-7 flex h-12 w-full max-w-[300px] items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 text-base font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-[17px]"
+              className="mt-7 flex h-12 w-full max-w-75 items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 text-base font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-[17px]"
             >
               <span>Continuar</span>
               <ArrowRight size={20} strokeWidth={1.8} />
             </button>
-          </div>
+          </div>}
         </div>
       </div>
 
       {previousAddress && (
         <div
-          className="fixed inset-0 z-[100] grid place-items-center bg-[#183f2c]/50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-100 grid place-items-center bg-[#183f2c]/50 p-4 backdrop-blur-sm"
           role="presentation"
         >
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="previous-address-title"
-            className="w-full max-w-md overflow-hidden rounded-[24px] border border-[#e5d9b8] bg-[#fffbea] shadow-[0_24px_70px_rgba(24,63,44,0.28)]"
+            className="w-full max-w-md overflow-hidden rounded-3xl border border-[#e5d9b8] bg-[#fffbea] shadow-[0_24px_70px_rgba(24,63,44,0.28)]"
           >
             <div className="bg-[#183f2c] px-6 py-5 text-[#fffbea]">
               <div className="mb-3 flex size-11 items-center justify-center rounded-full bg-white/10 text-[#f4d58a]">
@@ -420,6 +429,6 @@ export default function AddressPage({
           </section>
         </div>
       )}
-    </main>
+    </Root>
   );
 }

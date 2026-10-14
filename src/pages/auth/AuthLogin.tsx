@@ -1,4 +1,4 @@
-import { useEffect, useState, FormEvent, ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { publicSupabase } from "../../lib/supabase";
 
@@ -144,15 +144,15 @@ export default function AuthLogin({ children }: AuthLoginProps) {
       {/* Card de login */}
       <form
         onSubmit={login}
-        className="flex w-full max-w-[560px] flex-col rounded-[28px] border border-[#ECDFB0] bg-[#FBF4DE] px-8 py-10 shadow-[0_30px_60px_rgba(70,40,10,0.08)] sm:px-14 sm:py-12"
+        className="flex w-full max-w-140 flex-col rounded-[28px] border border-[#ECDFB0] bg-[#FBF4DE] px-8 py-10 shadow-[0_30px_60px_rgba(70,40,10,0.08)] sm:px-14 sm:py-12"
       >
         {/* Mini logo — placeholder */}
         <div className="mb-7 flex justify-center">
-          <div className="flex h-[100px] w-full items-center justify-center ">
+          <div className="flex h-25 w-full items-center justify-center ">
             <img
               src="/logo.png"
               alt=""
-              className="h-[90px] w-[200px]  object-contain"
+              className="h-22.5 w-50  object-contain"
             />
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function AuthLogin({ children }: AuthLoginProps) {
               placeholder="exemplo@email.com"
               autoComplete="email"
               required
-              className="h-[52px] w-full rounded-xl border border-[#E6D9A6] bg-[#F7EDCB] pl-11 pr-4 text-sm font-normal normal-case tracking-normal text-[#1F4A2E] placeholder:text-[#A49B83] focus:border-[#C4272A] focus:outline-none"
+              className="h-13 w-full rounded-xl border border-[#E6D9A6] bg-[#F7EDCB] pl-11 pr-4 text-sm font-normal normal-case tracking-normal text-[#1F4A2E] placeholder:text-[#A49B83] focus:border-[#C4272A] focus:outline-none"
             />
           </span>
         </label>
@@ -204,7 +204,7 @@ export default function AuthLogin({ children }: AuthLoginProps) {
               placeholder="••••••••"
               autoComplete="current-password"
               required
-              className="h-[52px] w-full rounded-xl border border-[#E6D9A6] bg-[#F7EDCB] pl-11 pr-11 text-sm font-normal normal-case tracking-normal text-[#1F4A2E] placeholder:text-[#A49B83] focus:border-[#C4272A] focus:outline-none"
+              className="h-13 w-full rounded-xl border border-[#E6D9A6] bg-[#F7EDCB] pl-11 pr-11 text-sm font-normal normal-case tracking-normal text-[#1F4A2E] placeholder:text-[#A49B83] focus:border-[#C4272A] focus:outline-none"
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[14px] text-[#2E5A3B] opacity-70">
               👁

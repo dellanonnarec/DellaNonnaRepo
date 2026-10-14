@@ -1,0 +1,65 @@
+@keyframes tracking-confirmation {
+  0%,
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgb(67 132 87 / 16%); }
+  50% { transform: scale(1.035); box-shadow: 0 0 0 12px rgb(67 132 87 / 0%); }
+}
+
+@keyframes tracking-simmer {
+  0%,
+  100% { transform: translateY(1px) rotate(-3deg); }
+  50% { transform: translateY(-4px) rotate(3deg); }
+}
+
+@keyframes tracking-steam {
+  0% { opacity: 0; transform: translateY(6px) scale(.8); }
+  35% { opacity: .8; }
+  100% { opacity: 0; transform: translateY(-12px) scale(1.1); }
+}
+
+@keyframes tracking-travel {
+  0%,
+  100% { transform: translateX(-4px) rotate(-2deg); }
+  50% { transform: translateX(5px) rotate(2deg); }
+}
+
+@keyframes tracking-arrive {
+  0% { transform: scale(.8); opacity: .55; }
+  65% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes tracking-road {
+  0%,
+  100% { transform: translateX(-16px); }
+  50% { transform: translateX(16px); }
+}
+
+.tracking-confirmation { animation: tracking-confirmation 2.8s ease-in-out infinite; }
+.tracking-simmer { animation: tracking-simmer 2.4s ease-in-out infinite; }
+.tracking-steam::before,
+.tracking-steam::after {
+  position: absolute;
+  bottom: 100%;
+  width: 5px;
+  height: 13px;
+  border-left: 2px solid currentColor;
+  border-radius: 50%;
+  content: "";
+  opacity: 0;
+  animation: tracking-steam 1.9s ease-out infinite;
+}
+.tracking-steam::before { left: 35%; }
+.tracking-steam::after { left: 58%; animation-delay: .65s; }
+.tracking-travel { animation: tracking-travel 1.9s ease-in-out infinite; }
+.tracking-arrive { animation: tracking-arrive .65s cubic-bezier(.2,.8,.2,1) both; }
+.tracking-road { animation: tracking-road 1.9s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tracking-confirmation,
+  .tracking-simmer,
+  .tracking-steam::before,
+  .tracking-steam::after,
+  .tracking-travel,
+  .tracking-arrive { animation: none; }
+  .tracking-road { animation: none; }
+}

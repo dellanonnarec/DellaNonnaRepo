@@ -5,6 +5,7 @@ export type Order = {
   complemento: string | null; bairro: string | null; referencia: string | null;
   forma_pagamento: "pix" | "cartao" | "dinheiro"; subtotal: number; taxa_entrega: number; total: number;
   observacao: string | null; status: OrderStatus; created_at: string; updated_at: string;
+  codigo_acompanhamento?: string | null;
   pedido_itens: OrderItem[];
 };
 export type OrderItem = { id: string; nome_produto: string; quantidade: number; preco_unitario: number; subtotal: number; observacao: string | null };

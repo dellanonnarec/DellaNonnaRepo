@@ -1,11 +1,10 @@
 import type { PaymentMethod } from "./types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
   Banknote,
   CreditCard,
-  QrCode,
   Wallet,
 } from "lucide-react";
 import { FaPix } from "react-icons/fa6";
@@ -15,6 +14,8 @@ type Props = {
   onChange: (value: PaymentMethod) => void;
   onBack: () => void;
   onContinue: () => void;
+  embedded?: boolean;
+  onValidityChange?: (valid: boolean) => void;
 };
 const choices: { id: PaymentMethod; title: string; detail: string }[] = [
   { id: "pix", title: "Pix", detail: "Pagamento via Pix" },
@@ -26,13 +27,18 @@ export default function PaymentPage({
   onChange,
   onBack,
   onContinue,
+  embedded = false,
+  onValidityChange,
 }: Props) {
   const [needsChange, setNeedsChange] = useState(false);
   const [changeFor, setChangeFor] = useState("");
+  const valid = Boolean(value) && !(value === "dinheiro" && needsChange && !changeFor.trim());
+  useEffect(() => onValidityChange?.(valid), [valid, onValidityChange]);
+  const Root = embedded ? "section" : "main";
   return (
-    <main className="min-h-screen overflow-hidden bg-[#F8F4E8] text-[#183f2c]">
+    <Root className={embedded ? "w-full text-[#183f2c]" : "min-h-screen overflow-hidden bg-[#F8F4E8] text-[#183f2c]"}>
       {/* HEADER */}
-      <header
+      {!embedded && <header
         className="relative z-50 mx-auto mt-5 flex w-full max-w-6xl
       items-center justify-between bg-[#F8F4E8] px-3 sm:px-6 md:px-8"
       >
@@ -43,7 +49,7 @@ export default function PaymentPage({
           className="grid size-10 shrink-0 place-items-center rounded-full
         text-[#315c40] transition-colors hover:bg-[#f0ead3] sm:size-11"
         >
-          <ArrowLeft className="size-[19px] sm:size-5" />
+          <ArrowLeft className="size-4.75 sm:size-5" />
         </button>
 
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -53,12 +59,12 @@ export default function PaymentPage({
             className="h-auto w-[clamp(200px,28vw,280px)]"
           />
         </div>
-      </header>
+      </header>}
 
       {/* CONTEÚDO */}
-      <div className="relative mx-auto w-full max-w-xl px-4 pb-16 pt-5 sm:px-6 sm:pb-24 sm:pt-6">
+      <div className={embedded ? "w-full" : "relative mx-auto w-full max-w-xl px-4 pb-16 pt-5 sm:px-6 sm:pb-24 sm:pt-6"}>
         {/* STEPPER */}
-        <div className="mx-auto flex w-full max-w-[300px] items-center">
+        {!embedded && <div className="mx-auto flex w-full max-w-75 items-center">
           {/* Etapa 1 */}
           <div className="relative flex flex-1 items-center">
             <div className="z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#b52327] text-[10px] font-semibold text-white">
@@ -90,10 +96,10 @@ export default function PaymentPage({
           <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#dfd5b8] bg-[#b52327] text-[10px] font-medium text-white">
             4
           </div>
-        </div>
+        </div>}
 
         {/* TÍTULO */}
-        <div className="mb-5 mt-6">
+        {!embedded && <div className="mb-5 mt-6">
           <span className="text-[10px] font-bold tracking-wide text-[#B52327] sm:text-[11px]">
             SEU PEDIDO
           </span>
@@ -105,25 +111,27 @@ export default function PaymentPage({
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#71826a] sm:text-base">
             Escolha como deseja pagar seu pedido.
           </p>
-        </div>
+        </div>}
 
         {/* FORMULÁRIO */}
-        <div className="relative rounded-[20px] border border-[#e5d9b8] bg-[#fffbea] p-4 shadow-[0_12px_35px_rgba(88,72,30,0.06)] sm:p-6">
+        <div className={embedded ? "w-full" : "relative rounded-[20px] border border-[#e5d9b8] bg-[#fffbea] p-4 shadow-[0_12px_35px_rgba(88,72,30,0.06)] sm:p-6"}>
           {/* FORMAS DE PAGAMENTO */}
-          <div className="grid gap-3">
+          <div className={embedded ? "grid grid-cols-3 gap-1 rounded-full bg-[#eee9d8] p-1" : "grid gap-3"}>
             {choices.map((choice) => (
               <button
                 key={choice.id}
                 type="button"
                 onClick={() => onChange(choice.id)}
-                className={`flex w-full items-center gap-3 rounded-[12px] border p-3.5 text-left transition sm:gap-4 sm:p-4 ${
+                className={embedded
+                  ? `h-10 rounded-full px-2 text-xs transition sm:text-sm ${value === choice.id ? "bg-[#f8f4e8] text-[#b51e24] shadow-sm" : "text-[#526d58] hover:text-[#183f2c]"}`
+                  : `flex w-full items-center gap-3 rounded-xl border p-3.5 text-left transition sm:gap-4 sm:p-4 ${
                   value === choice.id
                     ? "border-[#b51e24] bg-[#fff4e5] ring-2 ring-[#b51e24]/10"
                     : "border-[#dfd3b2] bg-[#fffdf5] hover:border-[#c8bd9d]"
                 }`}
               >
                 {/* ÍCONE */}
-                <span
+                {!embedded && <span
                   className={`grid size-10 shrink-0 place-items-center rounded-full ${
                     value === choice.id
                       ? "bg-[#b51e24] text-white"
@@ -143,10 +151,10 @@ export default function PaymentPage({
                   {!["pix", "dinheiro", "cartao"].includes(choice.id) && (
                     <Wallet size={20} strokeWidth={1.8} />
                   )}
-                </span>
+                </span>}
 
                 {/* RADIO */}
-                <span
+                {!embedded && <span
                   className={`grid size-5 shrink-0 place-items-center rounded-full border ${
                     value === choice.id
                       ? "border-[#b51e24]"
@@ -156,17 +164,17 @@ export default function PaymentPage({
                   {value === choice.id && (
                     <span className="size-2.5 rounded-full bg-[#b51e24]" />
                   )}
-                </span>
+                </span>}
 
                 {/* TEXTO */}
-                <span className="min-w-0 flex-1">
+                <span className={embedded ? "min-w-0" : "min-w-0 flex-1"}>
                   <strong className="block text-sm font-semibold leading-tight text-[#183f2c] sm:text-[15px]">
                     {choice.title}
                   </strong>
 
-                  <small className="mt-1 block text-xs font-normal leading-relaxed text-[#71826a] sm:text-sm">
+                  {!embedded && <small className="mt-1 block text-xs font-normal leading-relaxed text-[#71826a] sm:text-sm">
                     {choice.detail}
-                  </small>
+                  </small>}
                 </span>
               </button>
             ))}
@@ -210,7 +218,7 @@ export default function PaymentPage({
 
               {/* VALOR DO TROCO */}
               {needsChange && (
-                <div className="mt-3 w-full sm:max-w-[300px]">
+                <div className="mt-3 w-full sm:max-w-75">
                   <label className="mb-2 block text-sm font-semibold text-[#183f2c]">
                     Troco para
                   </label>
@@ -220,7 +228,7 @@ export default function PaymentPage({
                     value={changeFor}
                     onChange={(event) => setChangeFor(event.target.value)}
                     placeholder="R$ 100,00"
-                    className="h-11 w-full rounded-[12px] border border-[#dfd3b2] bg-[#fffdf5] px-3 text-sm font-normal text-[#315c40] outline-none transition placeholder:text-[#9b9b83] focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/10"
+                    className="h-11 w-full rounded-xl border border-[#dfd3b2] bg-[#fffdf5] px-3 text-sm font-normal text-[#315c40] outline-none transition placeholder:text-[#9b9b83] focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/10"
                   />
                 </div>
               )}
@@ -228,7 +236,7 @@ export default function PaymentPage({
           )}
 
           {/* CONTINUAR */}
-          <div className="flex w-full justify-center">
+          {!embedded && <div className="flex w-full justify-center">
             <button
               type="button"
               onClick={onContinue}
@@ -236,14 +244,14 @@ export default function PaymentPage({
                 !value ||
                 (value === "dinheiro" && needsChange && !changeFor.trim())
               }
-              className="mt-7 flex h-12 w-full max-w-[300px] items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 text-base font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-[17px]"
+              className="mt-7 flex h-12 w-full max-w-75 items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 text-base font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-[17px]"
             >
               <span>Revisar pedido</span>
               <ArrowRight size={20} strokeWidth={1.8} />
             </button>
-          </div>
+          </div>}
         </div>
       </div>
-    </main>
+    </Root>
   );
 }

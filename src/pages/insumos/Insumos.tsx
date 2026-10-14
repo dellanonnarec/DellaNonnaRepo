@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from "react";
+import { useState, type SyntheticEvent, useEffect } from "react";
 import { Plus, Search, Trash2, X, RotateCcw } from "lucide-react";
 import { publicSupabase } from "../../lib/supabase";
 
@@ -149,7 +149,7 @@ export default function Insumos() {
   const [isIngredientModalOpen, setIngredientModalOpen] = useState(false);
   const [conversion, setConversion] = useState({ cebola: 130, azeitona: 4 });
   const initialIngredients: Ingredient[] = [];
-  const [saved, setSaved] = useState(false);
+  const [, setSaved] = useState(false);
   const [ingredients, setIngredients] = useState(initialIngredients);
   const [ingredientDraft, setIngredientDraft] = useState({
     name: "",
@@ -251,7 +251,7 @@ export default function Insumos() {
     flashSaved();
   };
 
-  const submitIngredient = async (event: FormEvent<HTMLFormElement>) => {
+  const submitIngredient = async (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!ingredientDraft.name.trim()) return;
@@ -325,7 +325,7 @@ export default function Insumos() {
     flashSaved();
   };
   return (
-    <section className="min-h-screen  w-full bg-[#fbf5d9] px-6 text-[#295727] sm:px-8 lg:px-11">
+    <section className="min-h-screen  w-full bg-[#F7F5F0] px-6 text-[#295727] sm:px-8 lg:px-11">
       <div className="mb-7 flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
         <div>
           <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#b52327]">
@@ -349,7 +349,7 @@ export default function Insumos() {
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-[#e5ddbd] bg-[#fffbea] shadow-[0_2px_8px_rgba(47,69,44,0.06)]">
+      <div className="overflow-hidden rounded-lg border border-[#e5ddbd] bg-[#ffffff] shadow-[0_2px_8px_rgba(47,69,44,0.06)]">
         <div className="flex flex-col gap-3 border-b border-[#e9e2c9] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex items-center gap-3">
             <strong className="font-serif text-lg font-bold text-[#155b3b]">
@@ -360,7 +360,7 @@ export default function Insumos() {
             </span>
           </div>
 
-          <label className="flex h-9 w-full items-center gap-2 rounded-md border border-[#e4dfc9] bg-[#fffdf2] px-3 text-[#628064] sm:max-w-[260px]">
+          <label className="flex h-9 w-full items-center gap-2 rounded-md border border-[#e4dfc9] bg-[#fffdf2] px-3 text-[#628064] sm:max-w-65">
             <Search size={14} className="shrink-0" />
             <input
               className="min-w-0 flex-1 bg-transparent text-xs text-[#315c40] outline-none placeholder:text-[#9b9c7f]"
@@ -372,8 +372,8 @@ export default function Insumos() {
           </label>
         </div>
 
-        <div className="overflow-y-auto max-h-[700px]">
-          <table className="w-full min-w-[900px] border-collapse text-left">
+        <div className="overflow-y-auto max-h-175">
+          <table className="w-full min-w-225 border-collapse text-left">
             <thead className="bg-[#f5f0d9]">
               <tr>
                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
@@ -402,7 +402,7 @@ export default function Insumos() {
               {filteredIngredients.map((item) => (
                 <tr key={item.id} className="transition hover:bg-[#fcf8e9]">
                   <td className="px-4 py-2.5">
-                    <div className="flex min-w-[150px] items-center gap-2.5">
+                    <div className="flex min-w-37.5 items-center gap-2.5">
                       <span
                         className={`grid size-8 shrink-0 place-items-center rounded-md text-sm ${
                           item.category === "embalagem"
@@ -424,7 +424,7 @@ export default function Insumos() {
 
                   <td className="px-3 py-2.5">
                     <input
-                      className="h-8 w-full min-w-[140px] rounded-md border border-transparent bg-transparent px-2 text-xs text-[#54715b] outline-none placeholder:text-[#a4a187] hover:border-[#e4dfc9] focus:border-[#9eae82] focus:bg-[#fffdf2]"
+                      className="h-8 w-full min-w-35 rounded-md border border-transparent bg-transparent px-2 text-xs text-[#54715b] outline-none placeholder:text-[#a4a187] hover:border-[#e4dfc9] focus:border-[#9eae82] focus:bg-[#fffdf2]"
                       value={item.brand}
                       onChange={(event) =>
                         updateIngredient(item.id, "brand", event.target.value)
@@ -505,7 +505,7 @@ export default function Insumos() {
           onMouseDown={() => setIngredientModalOpen(false)}
         >
           <form
-            className="w-full max-w-lg overflow-hidden rounded-xl border border-[#e5ddbd] bg-[#fffbea] shadow-2xl"
+            className="w-full max-w-lg overflow-hidden rounded-xl border border-[#e5ddbd] bg-[#ffffff] shadow-2xl"
             onSubmit={submitIngredient}
             onMouseDown={(event) => event.stopPropagation()}
           >
@@ -647,7 +647,7 @@ export default function Insumos() {
         deleteIngredient={deleteIngredient}
       />
 
-      <div className="mt-6 rounded-lg border border-[#e5ddbd] bg-[#fffbea] p-5 shadow-[0_2px_8px_rgba(47,69,44,0.04)]">
+      <div className="mt-6 rounded-lg border border-[#e5ddbd] bg-[#ffffff] p-5 shadow-[0_2px_8px_rgba(47,69,44,0.04)]">
         <div className="flex items-center gap-3">
           <div className="grid size-9 place-items-center rounded-full bg-[#edf0d9] font-serif text-lg font-bold text-[#34704a]">
             ≈

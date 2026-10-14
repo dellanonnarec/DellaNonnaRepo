@@ -142,7 +142,7 @@ export default function Receitas() {
   const [pizzas, setPizzas] = useState(initialPizzas);
   const [editingId, setEditingId] = useState<number | null>(null);
   const supabase = publicSupabase;
-  const [dough, setDough] = useState<Dough>({
+  const [dough, ] = useState<Dough>({
     flour: 1000,
     water: 600,
     yeast: 20,
@@ -150,7 +150,7 @@ export default function Receitas() {
     oil: 30,
     yield: 5,
   });
-  const [saved, setSaved] = useState(false);
+  const [, setSaved] = useState(false);
   const persistedGas = readStoredGas();
   const [conversion, setConversion] = useState({ cebola: 130, azeitona: 4 });
   const [gasIncluded, setGasIncluded] = useState<boolean>(
@@ -651,7 +651,7 @@ export default function Receitas() {
     recipeBatchCost(recipe) / Math.max(recipe.massYield, 1);
 
   return (
-    <section className="min-h-screen bg-[#fbf5d9] px-6 text-[#155b3b] sm:px-8 lg:px-11 overflow-y-hidden">
+    <section className="min-h-screen bg-[#F7F5F0] px-6 text-[#155b3b] sm:px-8 lg:px-11 overflow-y-hidden">
       <div className="mb-7 flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
         <div>
           <h2 className="font-serif text-3xl font-bold tracking-tight text-[#295727]">
@@ -687,7 +687,7 @@ export default function Receitas() {
 
           return (
             <article
-              className="min-w-0 h-[700px] rounded-lg border border-[#e5ddbd] bg-[#fffbea] p-3 shadow-[0_2px_8px_rgba(47,69,44,0.06)] sm:p-4"
+              className="min-w-0 h-175 rounded-lg border border-[#e5ddbd] bg-[#ffffff] p-3 shadow-[0_2px_8px_rgba(47,69,44,0.06)] sm:p-4"
               key={pizza.id}
             >
               <div className="mb-3 flex items-start gap-2 border-b border-[#e9e2c9] pb-3">
@@ -868,9 +868,9 @@ export default function Receitas() {
                   )}
                 </div>
 
-                <div className="flex flex-col justify-between min-h-[480px] overflow-y-hidden">
+                <div className="flex flex-col justify-between min-h-120 overflow-y-hidden">
                   <div className="">
-                    <div className="divide-y max-h-[260px] overflow-y-auto overflow-x-hidden  divide-[#eee8d4] border-y border-[#eee8d4]">
+                    <div className="divide-y max-h-65 overflow-y-auto overflow-x-hidden  divide-[#eee8d4] border-y border-[#eee8d4]">
                       {pizza.lines.map((line) => (
                         <div
                           className="grid grid-cols-[minmax(0,1fr)_60px_74px_58px_22px] items-center gap-1.5 py-1.5"

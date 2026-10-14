@@ -138,7 +138,7 @@ export default function Precificacao() {
   const [ingredients, setIngredients] = useState(initialIngredients);
   const persistedGas = readStoredGas();
   const [gas, setGas] = useState<Gas>(() => persistedGas?.gas ?? defaultGas);
-  const [saved, setSaved] = useState(false);
+  const [, setSaved] = useState(false);
   const [conversion, setConversion] = useState({ cebola: 130, azeitona: 4 });
   const [gasIncluded, setGasIncluded] = useState<boolean>(
     () => persistedGas?.gasIncluded ?? false,
@@ -570,7 +570,7 @@ export default function Precificacao() {
     flashSaved();
   };
   return (
-    <section className="min-h-screen bg-[#fbf5d9] px-6  text-[#295727] sm:px-8 lg:px-11">
+    <section className="min-h-screen bg-[#F7F5F0] px-6  text-[#295727] sm:px-8 lg:px-11">
       <div className="mb-7 flex flex-col items-start justify-between gap-5 xl:flex-row xl:items-end">
         <div>
           <p className="font-serif text-3xl font-bold tracking-tight text-[#155b3b]">
@@ -582,7 +582,7 @@ export default function Precificacao() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-[#e5ddbd] bg-[#fffbea] px-4 py-3 text-xs text-[#54715b]">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-[#e5ddbd] bg-[#ffffff] px-4 py-3 text-xs text-[#54715b]">
           <span className="inline-flex items-center gap-2">
             <i className="size-2 rounded-full bg-[#438457]" />
             Margem saudável
@@ -600,7 +600,7 @@ export default function Precificacao() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-[#e5ddbd] bg-[#fffbea] shadow-[0_2px_8px_rgba(47,69,44,0.06)]">
+      <div className="overflow-hidden rounded-lg border border-[#e5ddbd] bg-[#ffffff] shadow-[0_2px_8px_rgba(47,69,44,0.06)]">
         <div className="flex flex-col gap-3 border-b border-[#e9e2c9] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex items-center gap-3">
             <strong className="font-serif text-lg font-bold text-[#155b3b]">
@@ -618,32 +618,32 @@ export default function Precificacao() {
           </span>
         </div>
 
-        <div className="overflow-x-auto overflow-y-auto max-h-[700px]">
-          <table className="w-full min-w-[940px] border-collapse text-left">
+        <div className="overflow-x-auto overflow-y-auto max-h-175">
+          <table className="w-full min-w-235 border-collapse text-left">
             <thead className="bg-[#f5f0d9]">
               <tr>
-                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Sabor
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Custo total
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Preço de venda
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Margem R$
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Margem %
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Massa Arretada
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Dantas
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Farini
                 </th>
               </tr>
@@ -757,7 +757,7 @@ export default function Precificacao() {
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-lg border border-[#e5ddbd] bg-[#fffbea] shadow-[0_2px_8px_rgba(47,69,44,0.04)]">
+      <div className="mt-6 overflow-hidden rounded-lg border border-[#e5ddbd] bg-[#ffffff] shadow-[0_2px_8px_rgba(47,69,44,0.04)]">
         <div className="flex flex-col gap-4 border-b border-[#e9e2c9] px-5 py-5 lg:flex-row lg:items-center">
           <div className="flex min-w-0 flex-1 items-start gap-3">
             <div className="grid size-10 shrink-0 place-items-center rounded-full bg-[#f8e9dd] text-[#b44b30]">

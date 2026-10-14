@@ -1,6 +1,11 @@
 import AdminOrdersNav from "./AdminOrdersNav";
-import AdminPedidosKanban from "./AdminPedidosKanbanInteractive";
+import AdminPedidosKanban from "./AdminPedidosKanban";
 
 export default function AdminPedidosKanbanPage() {
-  return <div className="admin-orders-shell"><AdminOrdersNav active="kanban" /><AdminPedidosKanban /></div>;
+  return (
+    <div className="admin-orders-shell">
+      <AdminOrdersNav active="kanban" />
+      <AdminPedidosKanban />
+    </div>
+  );
 }

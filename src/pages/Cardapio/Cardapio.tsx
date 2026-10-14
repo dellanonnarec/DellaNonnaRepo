@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState, useEffect, useRef } from "react";
+import { type SyntheticEvent , useMemo, useState, useEffect, useRef } from "react";
 import {
   ChevronDown,
   Pencil,
@@ -224,7 +224,7 @@ export default function Cardapio() {
     ordem_exibicao: "1",
     observacoes_internas: "",
   });
-  const [saved, setSaved] = useState(false);
+  const [, setSaved] = useState(false);
   const savedTimerRef = useRef<number | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [menuCategories, setMenuCategories] = useState<MenuCategoryRow[]>([]);
@@ -670,7 +670,7 @@ export default function Cardapio() {
       return categoryMatches && statusMatches && textMatches;
     });
 
-  const createCategory = async (event: FormEvent<HTMLFormElement>) => {
+  const createCategory = async (event: SyntheticEvent <HTMLFormElement>) => {
     event.preventDefault();
     const nome = categoryNameDraft.trim();
     if (!nome || !supabase) return;
@@ -812,7 +812,7 @@ export default function Cardapio() {
     }));
   };
 
-  const submitItem = async (event: FormEvent<HTMLFormElement>) => {
+  const submitItem = async (event: SyntheticEvent <HTMLFormElement>) => {
     event.preventDefault();
 
     const nomeComercial = draft.nome_comercial.trim();
@@ -974,7 +974,7 @@ export default function Cardapio() {
   };
 
   return (
-    <section className="min-h-screen bg-[#fbf5d9] px-6 text-[#295727] sm:px-8 lg:px-11">
+    <section className="min-h-screen bg-[#F7F5F0] px-6 text-[#295727] sm:px-8 lg:px-11">
       <div className="mb-7 flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
         <div>
           <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#b52327]">
@@ -998,7 +998,7 @@ export default function Cardapio() {
         </button>
       </div>
 
-      <details className="mb-5 rounded-lg border border-[#e5ddbd] bg-[#fffbea] p-4">
+      <details className="mb-5 rounded-lg border border-[#e5ddbd] bg-[#ffffff] p-4">
         <summary className="cursor-pointer font-serif text-sm font-bold text-[#155b3b]">Gerenciar categorias</summary>
         <form className="mt-4 flex flex-wrap gap-2" onSubmit={createCategory}>
           <input className="h-9 min-w-0 flex-1 rounded-md border border-[#e4dfc9] bg-[#fffdf2] px-3 text-xs" value={categoryNameDraft} onChange={(event) => setCategoryNameDraft(event.target.value)} placeholder="Nova categoria" maxLength={60} required />
@@ -1018,7 +1018,7 @@ export default function Cardapio() {
         </div>
       </details>
 
-      <div className="overflow-hidden rounded-lg border border-[#e5ddbd] bg-[#fffbea] shadow-[0_2px_8px_rgba(47,69,44,0.06)]">
+      <div className="overflow-hidden rounded-lg border border-[#e5ddbd] bg-[#ffffff] shadow-[0_2px_8px_rgba(47,69,44,0.06)]">
         <div className="flex flex-col gap-4 border-b border-[#e9e2c9] px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
             <strong className="font-serif text-lg font-bold text-[#155b3b]">
@@ -1070,25 +1070,25 @@ export default function Cardapio() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse text-left">
+          <table className="w-full min-w-190 border-collapse text-left">
             <thead className="bg-[#f5f0d9]">
               <tr>
-                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Item
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Categoria
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Preço
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Status
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   Margem
                 </th>
-                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-[#54715b]">
+                <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-[#54715b]">
                   <span className="sr-only">Ações</span>
                 </th>
               </tr>
@@ -1108,7 +1108,7 @@ export default function Cardapio() {
                 return (
                   <tr key={item.id} className="transition hover:bg-[#fcf8e9]">
                     <td className="px-4 py-3">
-                      <div className="flex min-w-[210px] items-center gap-3">
+                      <div className="flex min-w-52.5 items-center gap-3">
                         {item.imagem_url ? (
                           <img
                             src={item.imagem_url}
@@ -1223,11 +1223,11 @@ export default function Cardapio() {
           onMouseDown={() => setModalOpen(false)}
         >
           <form
-            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-[#e5ddbd] bg-[#fffbea] shadow-2xl"
+            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-[#e5ddbd] bg-[#ffffff] shadow-2xl"
             onSubmit={submitItem}
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[#e9e2c9] bg-[#fffbea] px-5 py-4">
+            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[#e9e2c9] bg-[#ffffff] px-5 py-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#b52327]">
                   Item do cardápio

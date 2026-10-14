@@ -7,7 +7,8 @@ import { publicSupabase } from "./lib/supabase";
 import "./App.css";
 import AuthLogin from "./pages/auth/AuthLogin";
 
-import CardapioPublico from "./pages/Pedido-Publico/CardapioPublico"; 
+import OrderConfirmedPage from "./pages/Pedido-Publico/OrderConfirmedPage";
+import CheckoutPage from "./pages/Pedido-Publico/CheckoutPage";
 import {
   Routes,
   Route,
@@ -58,8 +59,11 @@ function App() {
     <Routes>
       {/* público */}
       <Route path="/pedido" element={<Pedido />} />
+      <Route path="/pedido/:codigo" element={<OrderConfirmedPage />} />
+      <Route path="/sacola" element={<Pedido />} />
       
-      <Route path="/pedido/cardapio" element={<CardapioPublico />} />
+      
+      <Route path="/checkout" element={<CheckoutPage />} />
 
       {/* login */}
       {!session && (
