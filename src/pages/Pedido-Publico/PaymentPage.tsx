@@ -1,5 +1,6 @@
 import type { PaymentMethod } from "./types";
-import { useEffect, useState } from "react";
+import { formatCashAmount, money, parseCashAmount, type CashChangeDetails } from "./types";
+import { useEffect } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -16,6 +17,9 @@ type Props = {
   onContinue: () => void;
   embedded?: boolean;
   onValidityChange?: (valid: boolean) => void;
+  changeDetails: CashChangeDetails;
+  total: number;
+  onChangeDetailsChange: (details: CashChangeDetails) => void;
 };
 const choices: { id: PaymentMethod; title: string; detail: string }[] = [
   { id: "pix", title: "Pix", detail: "Pagamento via Pix" },
@@ -29,10 +33,14 @@ export default function PaymentPage({
   onContinue,
   embedded = false,
   onValidityChange,
+  changeDetails,
+  total,
+  onChangeDetailsChange,
 }: Props) {
-  const [needsChange, setNeedsChange] = useState(false);
-  const [changeFor, setChangeFor] = useState("");
-  const valid = Boolean(value) && !(value === "dinheiro" && needsChange && !changeFor.trim());
+  const receivedAmount = parseCashAmount(changeDetails.changeFor);
+  const changeAmountInvalid = value === "dinheiro" && changeDetails.needsChange &&
+    (receivedAmount === null || receivedAmount < total);
+  const valid = Boolean(value) && !changeAmountInvalid;
   useEffect(() => onValidityChange?.(valid), [valid, onValidityChange]);
   const Root = embedded ? "section" : "main";
   return (
@@ -193,8 +201,10 @@ export default function PaymentPage({
                   <input
                     type="radio"
                     name="troco"
-                    checked={needsChange}
-                    onChange={() => setNeedsChange(true)}
+                    checked={changeDetails.needsChange}
+                    onChange={() => {
+                      onChangeDetailsChange({ ...changeDetails, needsChange: true });
+                    }}
                     className="h-5 w-5 appearance-none rounded-full border border-[#dfd9c4] bg-[#fffbea] checked:border-[#b51e24] checked:bg-[#b51e24] focus:ring-0 focus:ring-offset-0"
                   />
                   Sim
@@ -205,10 +215,9 @@ export default function PaymentPage({
                   <input
                     type="radio"
                     name="troco"
-                    checked={!needsChange}
+                    checked={!changeDetails.needsChange}
                     onChange={() => {
-                      setNeedsChange(false);
-                      setChangeFor("");
+                      onChangeDetailsChange({ needsChange: false, changeFor: "" });
                     }}
                     className="h-5 w-5 appearance-none rounded-full border border-[#dfd9c4] bg-[#fffbea] checked:border-[#b51e24] checked:bg-[#b51e24] focus:ring-0 focus:ring-offset-0"
                   />
@@ -217,7 +226,7 @@ export default function PaymentPage({
               </div>
 
               {/* VALOR DO TROCO */}
-              {needsChange && (
+              {changeDetails.needsChange && (
                 <div className="mt-3 w-full sm:max-w-75">
                   <label className="mb-2 block text-sm font-semibold text-[#183f2c]">
                     Troco para
@@ -225,11 +234,26 @@ export default function PaymentPage({
 
                   <input
                     type="text"
-                    value={changeFor}
-                    onChange={(event) => setChangeFor(event.target.value)}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={formatCashAmount(changeDetails.changeFor)}
+                    onChange={(event) => {
+                      const digits = event.target.value.replace(/\D/g, "").slice(0, 12);
+                      onChangeDetailsChange({ ...changeDetails, changeFor: digits });
+                    }}
                     placeholder="R$ 100,00"
-                    className="h-11 w-full rounded-xl border border-[#dfd3b2] bg-[#fffdf5] px-3 text-sm font-normal text-[#315c40] outline-none transition placeholder:text-[#9b9b83] focus:border-[#78936b] focus:ring-2 focus:ring-[#78936b]/10"
+                    aria-invalid={receivedAmount !== null && receivedAmount < total}
+                    aria-describedby="cash-change-help"
+                    className={`h-11 w-full rounded-xl border bg-[#fffdf5] px-3 text-sm font-normal text-[#315c40] outline-none transition placeholder:text-[#9b9b83] focus:ring-2 ${receivedAmount !== null && receivedAmount < total ? "border-[#b51e24] focus:border-[#b51e24] focus:ring-[#b51e24]/10" : "border-[#dfd3b2] focus:border-[#78936b] focus:ring-[#78936b]/10"}`}
                   />
+                  <p id="cash-change-help" role={receivedAmount !== null && receivedAmount < total ? "alert" : undefined}
+                    className={`mt-1.5 text-xs ${receivedAmount !== null && receivedAmount < total ? "text-[#b51e24]" : "text-[#71826a]"}`}>
+                    {receivedAmount === null
+                      ? "Digite apenas números; os dois últimos dígitos representam os centavos."
+                      : receivedAmount < total
+                        ? `O valor para troco deve ser igual ou maior que ${money(total)}.`
+                        : `Troco: ${money(receivedAmount - total)}`}
+                  </p>
                 </div>
               )}
             </div>
@@ -242,7 +266,7 @@ export default function PaymentPage({
               onClick={onContinue}
               disabled={
                 !value ||
-                (value === "dinheiro" && needsChange && !changeFor.trim())
+                changeAmountInvalid
               }
               className="mt-7 flex h-12 w-full max-w-75 items-center justify-center gap-2 rounded-[100px] bg-[#b51e24] px-5 text-base font-semibold text-[#fffbea] shadow-[0_8px_16px_rgba(181,30,36,0.18)] transition hover:bg-[#a3191f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-[17px]"
             >

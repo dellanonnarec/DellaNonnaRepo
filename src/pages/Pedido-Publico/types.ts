@@ -63,6 +63,22 @@ export type PaymentMethod = "pix" | "cartao" | "dinheiro";
 export const money = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+export type CashChangeDetails = {
+  needsChange: boolean;
+  changeFor: string;
+};
+
+export const parseCashAmount = (value: string): number | null => {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return null;
+  return Number(digits) / 100;
+};
+
+export const formatCashAmount = (value: string): string => {
+  const amount = parseCashAmount(value);
+  return amount === null ? "" : money(amount);
+};
+
 export const cartItemTotal = (item: CartItem) =>
   item.quantity * (item.unitPrice + item.additions.reduce(
     (sum, addition) => sum + addition.unitPrice * addition.quantityPerItem,

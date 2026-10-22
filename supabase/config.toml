@@ -1,0 +1,5 @@
+[functions.delivery-quote]
+verify_jwt = false
+
+[functions.submit-public-order]
+verify_jwt = false

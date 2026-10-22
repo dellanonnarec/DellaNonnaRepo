@@ -15,6 +15,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import AdminLayout from "./pages/AdminLayout/AdminLayout";
+import DesktopAutoPrintService from "./printing/DesktopAutoPrintService";
 
 const supabase = publicSupabase;
 
@@ -56,6 +57,8 @@ function App() {
   }
 
   return (
+    <>
+    <DesktopAutoPrintService authenticated={session} />
     <Routes>
       {/* público */}
       <Route path="/pedido" element={<Pedido />} />
@@ -82,8 +85,9 @@ function App() {
         </>
       )}
 
-      <Route path="*" element={<Navigate to="/admin" replace />} />
+      <Route path="*" element={<Navigate to={window.desktop ? "/admin/impressao" : "/admin"} replace />} />
     </Routes>
+    </>
   );
 }
 

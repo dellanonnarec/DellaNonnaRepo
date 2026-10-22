@@ -3,7 +3,7 @@ export type Order = {
   id: string; numero_pedido: number; nome_cliente: string; telefone_cliente: string;
   tipo_entrega: "delivery" | "retirada"; cep: string | null; rua: string | null; numero: string | null;
   complemento: string | null; bairro: string | null; referencia: string | null;
-  forma_pagamento: "pix" | "cartao" | "dinheiro"; subtotal: number; taxa_entrega: number; total: number;
+  forma_pagamento: "pix" | "cartao" | "dinheiro"; subtotal: number; taxa_entrega: number; total: number; taxa_entrega_pendente?: boolean; modo_taxa_entrega?: "dinamica" | "fixa" | "pendente" | null;
   observacao: string | null; status: OrderStatus; created_at: string; updated_at: string;
   codigo_acompanhamento?: string | null;
   pedido_itens: OrderItem[];

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { DragEvent } from "react";
 import { ArrowLeft, RefreshCw, Search, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import { publicSupabase } from "../../lib/supabase";
 import {
   money,
@@ -121,9 +122,9 @@ export default function AdminPedidosKanban() {
     <main className="kanban-page">
       <header className="kanban-top">
         <div>
-          <a className="back-admin" href="/admin/pedidos">
+          <Link className="back-admin" to="/admin/pedidos">
             <ArrowLeft size={16} /> Pedidos
-          </a>
+          </Link>
           <p className="orders-eyebrow">CENTRAL DE PRODUÇÃO</p>
           <h1>Kanban de pedidos</h1>
           <p className="kanban-hint">
@@ -295,13 +296,14 @@ function KanbanOrderDetails({
             <b>{money(order.subtotal)}</b>
           </div>
           <div>
-            <span>Taxa de entrega</span>
-            <b>{money(order.taxa_entrega)}</b>
+            <span>{order.modo_taxa_entrega === "fixa" ? "Entrega fixa" : "Taxa de entrega"}</span>
+            <b>{order.taxa_entrega_pendente ? "A confirmar" : money(order.taxa_entrega)}</b>
           </div>
           <div className="kanban-detail-total">
-            <strong>Total</strong>
+            <strong>{order.taxa_entrega_pendente ? "Total parcial" : "Total"}</strong>
             <b>{money(order.total)}</b>
           </div>
+          {order.taxa_entrega_pendente && <small className="text-[#8a5a13]">Confirmar a taxa de entrega com o cliente antes do preparo.</small>}
           <div>
             <span>Pagamento</span>
             <b>{paymentLabels[order.forma_pagamento]}</b>

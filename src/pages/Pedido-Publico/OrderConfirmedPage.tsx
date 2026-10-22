@@ -18,6 +18,7 @@ type TrackingOrder = {
   order_number: number | string;
   order_total: number | string;
   order_status: string;
+  taxa_entrega_pendente: boolean;
 };
 
 const statusDetails = {
@@ -92,6 +93,7 @@ export default function OrderConfirmedPage() {
   const items = routeState?.trackingItems ?? [];
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
   const [total, setTotal] = useState(0);
+  const [deliveryFeePending, setDeliveryFeePending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -142,6 +144,7 @@ export default function OrderConfirmedPage() {
 
       setOrderNumber(Number(order.order_number));
       setTotal(Number(order.order_total));
+      setDeliveryFeePending(Boolean(order.taxa_entrega_pendente));
       setStatus(order.order_status);
       setLoading(false);
       setError("");
@@ -270,9 +273,10 @@ export default function OrderConfirmedPage() {
             )}
 
             <div className="flex items-center justify-between rounded-2xl bg-[#214a32] px-4 py-4 text-[#fffdf6]">
-              <span className="text-sm text-white/80">Total do pedido</span>
+              <span className="text-sm text-white/80">{deliveryFeePending ? "Subtotal · entrega a confirmar" : "Total do pedido"}</span>
               <strong className="font-display text-xl">{money(total)}</strong>
             </div>
+            {deliveryFeePending && <p className="rounded-xl bg-[#f7edd5] px-4 py-3 text-sm leading-relaxed text-[#78551b]">A pizzaria confirmará o valor da entrega com você pelo WhatsApp antes de preparar o pedido.</p>}
 
             {trackingCode && (
               <div className="grid gap-2 sm:grid-cols-2">

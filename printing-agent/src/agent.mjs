@@ -16,7 +16,8 @@ const maxAttempts = Math.max(1, Number(process.env.PRINT_MAX_ATTEMPTS ?? 5));
 const retryBaseMs = Math.max(1000, Number(process.env.PRINT_RETRY_BASE_MS ?? 5000));
 const staleAfterMs = Math.max(60000, Number(process.env.PRINT_STALE_AFTER_MS ?? 180000));
 const agentId = `${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`;
-const pollIntervalMs = 10000;
+// Polling curto para limitar atrasos quando um aviso Realtime não chega.
+const pollIntervalMs = 2000;
 const leaseHeartbeatMs = 30000;
 
 if (!supabaseUrl || !serviceRoleKey || !printerName) {
@@ -143,9 +144,36 @@ async function processJob(job) {
 
     const orderItems = order.pedido_itens ?? [];
     if (orderItems.length) {
+      const catalogIds = [...new Set(orderItems.map((item) => item.cardapio_item_id).filter(Boolean))];
+      const { data: catalogItems, error: catalogError } = await supabase
+        .from("cardapio_itens")
+        .select("id, categoria_id")
+        .in("id", catalogIds);
+      if (catalogError) {
+        await log("error", "Não foi possível consultar as categorias dos produtos; o cupom manterá todos na seção de itens.", {
+          pedidoId: claimed.pedido_id,
+          erro: catalogError.message,
+        });
+      } else {
+        const categoryIds = [...new Set((catalogItems ?? []).map((item) => item.categoria_id).filter(Boolean))];
+        const { data: categories, error: categoriesError } = categoryIds.length
+          ? await supabase.from("categorias_cardapio").select("id, nome").in("id", categoryIds)
+          : { data: [], error: null };
+        if (categoriesError) {
+          await log("error", "Não foi possível carregar os nomes das categorias dos produtos.", {
+            pedidoId: claimed.pedido_id,
+            erro: categoriesError.message,
+          });
+        } else {
+          const namesById = new Map((categories ?? []).map((category) => [category.id, category.nome]));
+          const categoryByProduct = new Map((catalogItems ?? []).map((item) => [item.id, namesById.get(item.categoria_id) ?? ""]));
+          for (const item of orderItems) item.categoria = categoryByProduct.get(item.cardapio_item_id) ?? "";
+        }
+      }
+
       const { data: additions, error: additionsError } = await supabase
         .from("pedido_item_adicionais")
-        .select("pedido_item_id, nome_adicional_snapshot, quantidade")
+        .select("pedido_item_id, nome_adicional_snapshot, quantidade, preco_unitario, subtotal")
         .in("pedido_item_id", orderItems.map((item) => item.id));
       if (additionsError) {
         await log("error", "Não foi possível carregar os snapshots de adicionais; o cupom usará as observações gravadas no item.", {
@@ -249,7 +277,13 @@ async function main() {
 
   const channel = supabase
     .channel("agente-fila-impressao")
-    .on("postgres_changes", { event: "INSERT", schema: "public", table: "fila_impressao_pedidos" }, () => void drainQueue())
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "fila_impressao_pedidos" }, (payload) => {
+      const job = payload.new;
+      void log("info", "Novo pedido recebido via Realtime.", {
+        pedidoId: job?.pedido_id,
+      });
+      void drainQueue();
+    })
     .subscribe((status, error) => {
       void log(status === "CHANNEL_ERROR" || status === "TIMED_OUT" ? "error" : "info", `Realtime: ${status}`, error ? { erro: error.message } : {});
       if (status === "SUBSCRIBED") void drainQueue();

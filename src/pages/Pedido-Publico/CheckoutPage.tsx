@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { CartItem, Customer, DeliveryAddress, PaymentMethod } from "./types";
-import { cartSubtotal, money } from "./types";
+import { cartSubtotal, money, parseCashAmount } from "./types";
 import FulfillmentPage from "./FulfillmentPage";
 import CustomerPage from "./CustomerPage";
 import AddressPage from "./AddressPage";
@@ -14,6 +14,7 @@ const CART_KEY = "della-nonna-public-cart";
 const emptyAddress: DeliveryAddress = {
   cep: "", rua: "", numero: "", complemento: "", bairro: "", cidade: "", referencia: "",
 };
+type DeliveryQuote = { modo?: "dinamica" | "fixa"; distance_km: number | null; taxa_entrega: number | null; faixa: { distancia_min_km: number; distancia_max_km: number } | null; manual_confirmation?: boolean };
 
 function readCart(): CartItem[] {
   try {
@@ -35,13 +36,17 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState(emptyAddress);
   const [previousAddress, setPreviousAddress] = useState<DeliveryAddress | null>(null);
   const [payment, setPayment] = useState<PaymentMethod | "">("pix");
+  const [cashChange, setCashChange] = useState({ needsChange: false, changeFor: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [customerValid, setCustomerValid] = useState(false);
   const [addressValid, setAddressValid] = useState(false);
   const [paymentValid, setPaymentValid] = useState(false);
+  const [deliveryQuote, setDeliveryQuote] = useState<DeliveryQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
   const lastLookupKey = useRef("");
-  const deliveryFee = 0;
+  const deliveryFee = fulfillment === "delivery" ? deliveryQuote?.taxa_entrega ?? 0 : 0;
   const subtotal = cartSubtotal(items);
   const fee = fulfillment === "delivery" ? deliveryFee : 0;
   const total = subtotal + fee;
@@ -81,11 +86,55 @@ export default function CheckoutPage() {
     void continueFromCustomer();
   }, [lookupKey, continueFromCustomer]);
 
+  useEffect(() => {
+    if (fulfillment !== "delivery") {
+      setDeliveryQuote(null); setQuoteError(""); setQuoteLoading(false);
+      return;
+    }
+    if (!addressValid) {
+      setDeliveryQuote(null); setQuoteError(""); setQuoteLoading(false);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setQuoteLoading(true); setDeliveryQuote(null); setQuoteError("");
+      try {
+        if (!publicSupabase) throw new Error("O serviço de pedidos não está configurado.");
+        const { data, error: invokeError } = await publicSupabase.functions.invoke("delivery-quote", { body: { address } });
+        if (invokeError) {
+          let message = invokeError.message;
+          const context = (invokeError as Error & { context?: unknown }).context;
+          if (context instanceof Response) {
+            const payload = await context.clone().json().catch(() => null) as { error?: string } | null;
+            if (payload?.error) message = payload.error;
+          }
+          throw new Error(message);
+        }
+        if (!data || (!data.manual_confirmation && (!Number.isFinite(Number(data.taxa_entrega)) || !Number.isFinite(Number(data.distance_km))))) throw new Error("Não foi possível determinar a taxa para este endereço.");
+        if (active) setDeliveryQuote(data as DeliveryQuote);
+      } catch (cause) {
+        if (active) setQuoteError(cause instanceof Error ? cause.message : "Não foi possível calcular a entrega. Confira o endereço e tente novamente.");
+      } finally {
+        if (active) setQuoteLoading(false);
+      }
+    }, 500);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [fulfillment, address.cep, address.rua, address.numero, address.complemento, address.bairro, address.cidade, address.referencia, addressValid]);
+
   const canSubmit = items.length > 0 && Boolean(fulfillment) && customerValid &&
-    paymentValid && (fulfillment !== "delivery" || addressValid);
+    paymentValid && (fulfillment !== "delivery" || (addressValid && Boolean(deliveryQuote) && !quoteLoading));
 
   const submitOrder = async () => {
     if (!fulfillment || !payment || !items.length || customer.name.trim().length < 2) return;
+    const valorRecebido = payment === "dinheiro" && cashChange.needsChange
+      ? parseCashAmount(cashChange.changeFor)
+      : null;
+    if (payment === "dinheiro" && cashChange.needsChange && (valorRecebido === null || valorRecebido < total)) {
+      setError(valorRecebido === null
+        ? "Informe o valor para calcular o troco."
+        : `O valor informado deve ser igual ou maior que ${money(total)}.`);
+      return;
+    }
     if (!publicSupabase) {
       setError("O serviço de pedidos não está configurado.");
       return;
@@ -95,7 +144,8 @@ export default function CheckoutPage() {
     setError("");
     try {
       const trackingCode = await submitPublicOrder({
-        items, customer, fulfillment, address, payment, subtotal, deliveryFee,
+        items, customer, fulfillment, address, payment,
+        valorRecebido,
       });
       localStorage.removeItem(CART_KEY);
       navigate(`/pedido/${encodeURIComponent(trackingCode)}`, {
@@ -104,7 +154,7 @@ export default function CheckoutPage() {
       });
     } catch (cause) {
       console.error("Falha ao finalizar pedido:", cause);
-      setError("Não foi possível enviar o pedido. Confira sua conexão e tente novamente.");
+      setError(cause instanceof Error ? cause.message : "Não foi possível enviar o pedido. Confira sua conexão e tente novamente.");
     } finally {
       setBusy(false);
     }
@@ -138,18 +188,28 @@ export default function CheckoutPage() {
               onUsePreviousAddress={() => { if (previousAddress) setAddress(previousAddress); setPreviousAddress(null); }}
               onEnterAnotherAddress={() => { setAddress(emptyAddress); setPreviousAddress(null); }}
               onBack={onBack} onContinue={() => undefined} onValidityChange={setAddressValid} embedded />
+            <div className="mt-3 rounded-xl bg-[#fffdf6] px-4 py-3 text-sm" aria-live="polite">
+              {quoteLoading ? <span className="text-[#71826a]">Calculando a distância por rota…</span>
+                : quoteError ? <span className="text-[#b51e24]">{quoteError}</span>
+                  : deliveryQuote?.manual_confirmation ? <span className="text-[#8a5a13]">A consulta de rotas está temporariamente indisponível. Você pode enviar o pedido; a pizzaria confirmará a taxa de entrega pelo WhatsApp antes de preparar.</span>
+                    : deliveryQuote?.modo === "fixa" ? <span className="font-semibold text-[#183f2c]">Taxa de entrega: {money(deliveryQuote.taxa_entrega!)}.</span>
+                    : deliveryQuote ? <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-[#526d58]">Distância por rota: <strong>{deliveryQuote.distance_km!.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km</strong></span><span className="font-semibold text-[#183f2c]">Entrega: {money(deliveryQuote.taxa_entrega!)}</span></div>
+                    : <span className="text-[#71826a]">Informe um endereço válido para consultar a área de entrega e a taxa.</span>}
+            </div>
           </section>
         )}
 
         <section>
           <h2 className="mb-3 font-serif text-lg font-bold">Pagamento <span className="font-sans text-xs font-normal">{fulfillment === "delivery" ? "na entrega" : "na retirada"}</span></h2>
-          <PaymentPage value={payment} onChange={setPayment} onBack={onBack} onContinue={() => undefined} onValidityChange={setPaymentValid} embedded />
+          <PaymentPage value={payment} onChange={setPayment} onBack={onBack} onContinue={() => undefined}
+            onValidityChange={setPaymentValid} changeDetails={cashChange} total={total}
+            onChangeDetailsChange={setCashChange} embedded />
         </section>
 
         <section className="space-y-2 rounded-[20px] bg-[#fffdf6] p-5 text-sm shadow-sm">
           <div className="flex justify-between gap-4"><span>Subtotal</span><span>{money(subtotal)}</span></div>
-          {fulfillment === "delivery" && <div className="flex justify-between gap-4"><span>Entrega</span><span>{money(fee)}</span></div>}
-          <div className="flex justify-between gap-4 border-t border-[#dfd8c5] pt-2 text-base font-bold"><span>Total</span><span className="text-[#b51e24]">{money(total)}</span></div>
+          {fulfillment === "delivery" && <div className="flex justify-between gap-4"><span>Entrega</span><span>{deliveryQuote?.manual_confirmation ? "A confirmar" : money(fee)}</span></div>}
+          <div className="flex justify-between gap-4 border-t border-[#dfd8c5] pt-2 text-base font-bold"><span>{deliveryQuote?.manual_confirmation ? "Subtotal (entrega a confirmar)" : "Total"}</span><span className="text-[#b51e24]">{money(total)}</span></div>
         </section>
       </div>
 
@@ -158,7 +218,7 @@ export default function CheckoutPage() {
           {error && <p role="alert" className="mb-2 text-center text-sm text-[#b51e24]">{error}</p>}
           <button type="button" onClick={() => void submitOrder()} disabled={!canSubmit || busy}
             className="flex h-14 w-full items-center justify-between rounded-full bg-[#b51e24] px-6 text-base font-bold text-white shadow-[0_10px_28px_rgba(181,30,36,0.22)] transition hover:bg-[#a3191f] disabled:cursor-not-allowed disabled:bg-[#d99a90]">
-            <span>{busy ? "Enviando pedido…" : "Fazer pedido"}</span><span>{money(total)}</span>
+            <span>{busy ? "Enviando pedido…" : "Fazer pedido"}</span><span className="text-right text-sm">{deliveryQuote?.manual_confirmation ? "Entrega a confirmar" : money(total)}</span>
           </button>
         </div>
       </footer>

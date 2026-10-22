@@ -200,6 +200,8 @@ export default function Cardapio() {
   const [ingredients, setIngredients] = useState(initialIngredients);
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState("");
   const doughRecipes = useMemo(
     () => pizzas.filter((recipe) => recipe.category === "massa"),
     [pizzas],
@@ -720,6 +722,7 @@ export default function Cardapio() {
   };
 
   const openNewItem = () => {
+    setImageUploadError("");
     setDraft({
       id: Date.now(),
       dbId: undefined,
@@ -745,6 +748,7 @@ export default function Cardapio() {
   };
 
   const openEditItem = (item: MenuItem) => {
+    setImageUploadError("");
     setDraft({
       id: item.id,
       dbId: item.dbId,
@@ -773,47 +777,46 @@ export default function Cardapio() {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
-
-    if (!file || !supabase) {
-      if (file) {
-        setDraft((current) => ({
-          ...current,
-          imagem_url: URL.createObjectURL(file),
-        }));
-      }
-
+    event.target.value = "";
+    if (!file) return;
+    if (!supabase) {
+      setImageUploadError("Não foi possível conectar ao armazenamento de imagens.");
       return;
     }
 
-    const fileName = `cardapio/${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+    setImageUploading(true);
+    setImageUploadError("");
+    const safeName = file.name
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Za-z0-9._-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^[.-]+|[.-]+$/g, "") || "imagem";
+    const fileName = `itens/${Date.now()}-${safeName}`;
 
-    const { error } = await supabase.storage
-      .from("cardapio")
-      .upload(fileName, file, {
-        upsert: true,
-      });
+    try {
+      const { error } = await supabase.storage
+        .from("cardapio")
+        .upload(fileName, file, { upsert: true });
+      if (error) throw error;
 
-    if (error) {
+      const { data } = supabase.storage.from("cardapio").getPublicUrl(fileName);
+      setDraft((current) => ({ ...current, imagem_url: data.publicUrl }));
+    } catch (error) {
       console.error("Falha ao enviar imagem do cardápio:", error);
-
-      setDraft((current) => ({
-        ...current,
-        imagem_url: URL.createObjectURL(file),
-      }));
-
-      return;
+      setImageUploadError(
+        error instanceof Error
+          ? `Falha no upload: ${error.message}`
+          : "Falha ao enviar imagem. Tente novamente.",
+      );
+    } finally {
+      setImageUploading(false);
     }
-
-    const { data } = supabase.storage.from("cardapio").getPublicUrl(fileName);
-
-    setDraft((current) => ({
-      ...current,
-      imagem_url: data.publicUrl,
-    }));
   };
 
   const submitItem = async (event: SyntheticEvent <HTMLFormElement>) => {
     event.preventDefault();
+    if (imageUploading) return;
 
     const nomeComercial = draft.nome_comercial.trim();
 
@@ -1420,8 +1423,8 @@ export default function Cardapio() {
                     />
                   </label>
 
-                  <span className="mt-2 block text-[11px] text-[#829078]">
-                    ou cole a URL em um campo futuro.
+                  <span className={`mt-2 block text-[11px] ${imageUploadError ? "text-[#b52327]" : "text-[#829078]"}`} role={imageUploadError ? "alert" : undefined}>
+                    {imageUploadError || (imageUploading ? "Enviando imagem…" : "A imagem será salva no armazenamento do cardápio.")}
                   </span>
                 </div>
               </div>
@@ -1525,8 +1528,9 @@ export default function Cardapio() {
               </button>
 
               <button
-                className="inline-flex h-10 items-center gap-2 rounded-md bg-[#b51e24] px-4 text-xs font-semibold text-[#fff9df] transition hover:bg-[#99191e]"
+                className="inline-flex h-10 items-center gap-2 rounded-md bg-[#b51e24] px-4 text-xs font-semibold text-[#fff9df] transition hover:bg-[#99191e] disabled:cursor-wait disabled:opacity-60"
                 type="submit"
+                disabled={imageUploading}
               >
                 <Save size={16} />
                 Salvar item
